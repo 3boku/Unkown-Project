@@ -37,8 +37,12 @@ function buildGenerateConfig(
     if (config.responseMimeType) {
       merged.responseMimeType = config.responseMimeType;
     }
-    if (config.responseSchema) {
-      merged.responseJsonSchema = config.responseSchema;
+    const jsonSchema = config.responseJsonSchema ?? config.responseSchema;
+    if (jsonSchema !== undefined) {
+      merged.responseJsonSchema = jsonSchema;
+    }
+    if (config.thinkingConfig) {
+      merged.thinkingConfig = config.thinkingConfig;
     }
   }
 

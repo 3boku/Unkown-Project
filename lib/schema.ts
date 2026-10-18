@@ -182,16 +182,86 @@ export const ReelComponentSchema = z.enum([
 ]);
 export type ReelComponent = z.infer<typeof ReelComponentSchema>;
 
+export const SafeZoneSchema = z.enum([
+  'CENTER_SAFE',
+  'TOP_THIRD_SAFE',
+  'SPLIT_BENTO_SAFE',
+]);
+export type SafeZone = z.infer<typeof SafeZoneSchema>;
+
+export const VeoScenePromptSchema = z.object({
+  cameraAngle: z.string(),
+  cameraMove: z.string(),
+  lensMm: z.number(),
+  lighting: z.string(),
+  sfxCue: z.string(),
+  compiledPrompt: z.string(),
+  seed: z.number().int(),
+});
+export type VeoScenePrompt = z.infer<typeof VeoScenePromptSchema>;
+
+export const SecondBeatSchema = z.object({
+  secondOffset: z.number(),
+  visualAction: z.string(),
+  highlightWord: z.string(),
+  accent: BrandColorSchema,
+  sfxCue: z.string(),
+});
+export type SecondBeat = z.infer<typeof SecondBeatSchema>;
+
+export const ViralDnaProfileSchema = z.object({
+  analyzedReelCount: z.number().int(),
+  firstFrameShockMs: z.number(),
+  avgCutDurationSec: z.number(),
+  targetBpm: z.number(),
+  hookFormula: z.string(),
+  retentionTriggers: z.array(z.string()),
+});
+export type ViralDnaProfile = z.infer<typeof ViralDnaProfileSchema>;
+
+export const VerificationRubricItemSchema = z.object({
+  score: z.number(),
+  passed: z.boolean(),
+  note: z.string(),
+});
+export type VerificationRubricItem = z.infer<typeof VerificationRubricItemSchema>;
+
+export const VerificationRubricSchema = z.object({
+  hookImpact1_5s: VerificationRubricItemSchema,
+  safeZoneLegibility: VerificationRubricItemSchema,
+  physicsIntegrity: VerificationRubricItemSchema,
+  cutRhythmSync: VerificationRubricItemSchema,
+});
+export type VerificationRubric = z.infer<typeof VerificationRubricSchema>;
+
+export const VerificationIterationSchema = z.object({
+  iteration: z.number().int(),
+  overallScore: z.number(),
+  passed: z.boolean(),
+  rubric: VerificationRubricSchema,
+  issues: z.array(z.string()),
+  appliedFix: z.string().optional(),
+});
+export type VerificationIteration = z.infer<typeof VerificationIterationSchema>;
+
 export const ReelSceneSchema = z.object({
   component: ReelComponentSchema,
   durationSec: z.number(),
   overlayText: z.string(),
   highlightWords: z.array(z.string()),
+  accent: BrandColorSchema.optional(),
+  safeZone: SafeZoneSchema.optional(),
+  backgroundVideoUrl: z.string().optional(),
+  veoPrompt: VeoScenePromptSchema.optional(),
+  secondBeats: z.array(SecondBeatSchema).optional(),
 });
 export type ReelScene = z.infer<typeof ReelSceneSchema>;
 
 export const ReelSchema = z.object({
   scenes: z.array(ReelSceneSchema).min(1),
+  directorRationale: z.string().optional(),
+  viralDna: ViralDnaProfileSchema.optional(),
+  verificationLoop: z.array(VerificationIterationSchema).optional(),
 });
 export type Reel = z.infer<typeof ReelSchema>;
 
@@ -209,3 +279,4 @@ export const GeneratedSchema = z.object({
   sns: SnsSchema,
 });
 export type Generated = z.infer<typeof GeneratedSchema>;
+

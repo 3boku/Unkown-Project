@@ -27,6 +27,11 @@ export class GeminiError extends Error {
   }
 }
 
+export interface GeminiThinkingConfig {
+  thinkingBudget?: number;
+  includeThoughts?: boolean;
+}
+
 export interface GeminiGenerationConfig {
   temperature?: number;
   topP?: number;
@@ -35,6 +40,8 @@ export interface GeminiGenerationConfig {
   stopSequences?: string[];
   responseMimeType?: string;
   responseSchema?: unknown;
+  responseJsonSchema?: unknown;
+  thinkingConfig?: GeminiThinkingConfig;
 }
 
 export interface PromptTemplateConfig {
