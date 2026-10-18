@@ -34,3 +34,11 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## GDG BrandKit & Reels Studio Documentation
+
+- [SPEC — 기술 명세](docs/gdg-brandkit-studio/SPEC.md)
+- [PRD — 제품 요구사항 정의서](docs/gdg-brandkit-studio/PRD.md)
+- [BACKLOG — 백로그 (WWA)](docs/gdg-brandkit-studio/BACKLOG.md)
+- [AGENTS — 에이전트 작업 규칙](AGENTS.md)
+
