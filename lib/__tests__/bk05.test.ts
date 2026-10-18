@@ -69,6 +69,9 @@ const { POST } = await import('../../app/api/render/[kind]/route.tsx');
 const { renderCardSlidePng } = await import(
   '../../components/templates/CardNewsTemplate.tsx'
 );
+const { buildAllCardSlideFilenames } = await import(
+  '../../components/CardNewsPreview.tsx'
+);
 
 const ROOT_DIR = process.cwd();
 
@@ -323,6 +326,49 @@ describe('BK-05 Acceptance Criteria — 인스타 카드뉴스 세트 (1080x1350
     const { width, height } = parsePngDimensions(buf);
     assert.equal(width, 1080);
     assert.equal(height, 1350);
+  });
+
+  it('builds sequential filenames and downloads all card slides in batch order', async () => {
+    const { plan, generated } = loadSampleFixtures();
+    const normalized = normalizeCardSlidesForPlan(plan, generated.cards);
+    const filenames = buildAllCardSlideFilenames(normalized);
+
+    assert.equal(filenames.length, normalized.length);
+    assert.equal(filenames[0], 'gdg-card-01-cover.png');
+    assert.equal(
+      filenames[filenames.length - 1],
+      `gdg-card-${String(normalized.length).padStart(2, '0')}-cta.png`
+    );
+
+    for (let idx = 0; idx < normalized.length; idx++) {
+      const formBody = new URLSearchParams({
+        payload: JSON.stringify({
+          plan,
+          slide: normalized[idx],
+          slideIndex: idx,
+          totalSlides: normalized.length,
+          filename: filenames[idx],
+        }),
+      });
+
+      const req = new Request(
+        'http://localhost:3000/api/render/card?download=1',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded' },
+          body: formBody.toString(),
+        }
+      );
+
+      const res = await POST(req, {
+        params: Promise.resolve({ kind: 'card' }),
+      });
+      assert.equal(res.status, 200);
+      assert.equal(
+        res.headers.get('content-disposition'),
+        `attachment; filename="${filenames[idx]}"`
+      );
+    }
   });
 });
 
