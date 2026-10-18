@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100" fill="none">
+  <!-- GDG Brackets Mark: 왼쪽 괄호(빨강 위·파랑 아래), 오른쪽 괄호(초록 위·노랑 아래) -->
+  <g stroke-linecap="round">
+    <path d="M37 31L13 50" stroke="rgb(32, 33, 36)" stroke-width="21"/>
+    <path d="M37 31L13 50" stroke="rgb(234, 67, 53)" stroke-width="15"/>
+    <path d="M13 50L37 69" stroke="rgb(32, 33, 36)" stroke-width="21"/>
+    <path d="M13 50L37 69" stroke="rgb(66, 133, 244)" stroke-width="15"/>
+    <path d="M87 50L63 69" stroke="rgb(32, 33, 36)" stroke-width="21"/>
+    <path d="M87 50L63 69" stroke="rgb(251, 188, 5)" stroke-width="15"/>
+    <path d="M63 31L87 50" stroke="rgb(32, 33, 36)" stroke-width="21"/>
+    <path d="M63 31L87 50" stroke="rgb(52, 168, 83)" stroke-width="15"/>
+  </g>
+</svg>
