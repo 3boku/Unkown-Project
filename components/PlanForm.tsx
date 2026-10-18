@@ -397,7 +397,7 @@ export function PlanForm({
               type="text"
               value={plan.hostName}
               onChange={(e) => updateField('hostName', e.target.value)}
-              placeholder="GDG Campus Korea"
+              placeholder="GDG"
               className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -595,7 +595,7 @@ export function PlanForm({
         </div>
       </section>
 
-      {/* 2. 디자인 에셋 (Design Assets) */}
+      {/* 2. 행사 자료 및 로고 에셋 */}
       <section className="space-y-4 pt-4 border-t border-slate-200">
         <div className="flex items-center justify-between">
           <h3
@@ -606,16 +606,27 @@ export function PlanForm({
               className="inline-block w-2 h-4 rounded-full"
               style={{ backgroundColor: color.yellow }}
             />
-            브랜드 &amp; 디자인 에셋 (Design Assets)
+            행사 자료 및 브랜드 에셋 (Event Files &amp; Logos)
           </h3>
           <span className="text-xs text-slate-400">선택 사항</span>
+        </div>
+
+        {/* Notice explaining studio generates key visual and posters */}
+        <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-xs text-blue-950 flex items-start gap-2.5">
+          <span className="text-sm">🎨</span>
+          <div className="leading-relaxed">
+            <strong>키비주얼·포스터·카드뉴스는 스튜디오가 직접 만들어 드립니다.</strong>
+            <p className="text-blue-800/80 mt-0.5">
+              행사에서 사용되는 파일(행사 전용 로고, 후원사 로고 등)만 넣어주시면, 기획서 내용과 브랜드 가이드에 맞춰 모든 디자인 에셋이 자동 생성됩니다.
+            </p>
+          </div>
         </div>
 
         {/* 1. 행사 커스텀 로고 */}
         <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-700">
-              행사 로고 (Custom Logo / Lockup)
+              행사/챕터 로고 (Custom Logo / Lockup)
             </label>
             <span className="text-[11px] text-slate-400">
               미입력 시 기본 GDG 락업 로고 적용
@@ -669,14 +680,14 @@ export function PlanForm({
           </div>
         </div>
 
-        {/* 2. 키비주얼 / 배경 그래픽 */}
+        {/* 2. 키비주얼 / 배경 그래픽 (선택 오버라이드) */}
         <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-slate-700">
-              키비주얼 &amp; 포스터 그래픽 (Key Visual)
+              커스텀 키비주얼 직접 지정 (선택 오버라이드)
             </label>
             <span className="text-[11px] text-slate-400">
-              썸네일 및 카드뉴스 표지 배경에 활용
+              미입력 시 테마 키비주얼 그래픽을 스튜디오가 자동 생성합니다.
             </span>
           </div>
 

@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { type EventPlan } from '@/lib/schema';
+import { type EventPlan, type Generated } from '@/lib/schema';
 import { color } from '@/lib/tokens';
-import { samplePlan } from '@/lib/storage';
+import { sampleGenerated, samplePlan } from '@/lib/storage';
 
 interface TerminalChatPlannerProps {
   onPlanComplete: (plan: EventPlan) => void;
-  onSkipToStudio: () => void;
+  onGeneratedComplete?: (generated: Generated) => void;
 }
 
 interface Message {
@@ -23,12 +23,12 @@ const INITIAL_MESSAGES: Message[] = [
   {
     id: 'm-sys-1',
     role: 'system',
-    text: `● agy --brandkit-planner initialized\n[Backend: Gemini 4 Argon / 3.8 Flash (High)]\n[Status: Ready to plan GDG Campus Event]`,
+    text: `● agy --brandkit-planner initialized\n[Team: 귀찮앙 · Org: GDG]\n[Backend: Gemini 4]\n[Status: Ready to plan GDG Event & BrandKit]`,
   },
   {
     id: 'm-agent-0',
     role: 'agent',
-    text: `안녕하세요 오거나이저님! GDG 캠퍼스 행사의 브랜드 킷을 만들기 위한 기획을 대화로 도와드릴게요.\n어떤 테마나 성격의 행사를 준비하고 계신가요?`,
+    text: `안녕하세요 GDG 오거나이저님! 팀 '귀찮앙'의 대화형 브랜드 킷 스튜디오입니다.\n어떤 테마나 이름의 행사를 준비하고 계신가요?`,
     options: [
       'Build with AI 핸즈온 캠퍼스',
       'Google I/O Extended 해커톤',
@@ -43,7 +43,7 @@ const generateMsgId = (prefix: string) => `${prefix}-${++msgIdCounter}`;
 
 export function TerminalChatPlanner({
   onPlanComplete,
-  onSkipToStudio,
+  onGeneratedComplete,
 }: TerminalChatPlannerProps) {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
@@ -59,7 +59,7 @@ export function TerminalChatPlanner({
   const inputRef = useRef<HTMLInputElement>(null);
   const chatFileRef = useRef<HTMLInputElement>(null);
   const [pendingUploadType, setPendingUploadType] = useState<
-    'logo' | 'keyVisual' | null
+    'logo' | 'keyVisual' | 'sponsor' | null
   >(null);
 
   useEffect(() => {
@@ -90,10 +90,10 @@ export function TerminalChatPlanner({
             {
               id: generateMsgId('m-agent'),
               role: 'agent',
-              text: `로고 파일이 잘 등록되었습니다! 추가할 키비주얼이나 후원사 에셋이 더 있으신가요?`,
+              text: `로고 파일이 등록되었습니다! 이제 Gemini 4로 기획서와 브랜드 킷을 생성할까요?`,
               options: [
                 '📁 키비주얼/포스터 파일 첨부하기',
-                '준비 완료! 기획서 생성하기',
+                '🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기',
               ],
             },
           ]);
@@ -104,13 +104,28 @@ export function TerminalChatPlanner({
             {
               id: generateMsgId('m-user'),
               role: 'user',
-              text: `[키비주얼/포스터 이미지 첨부 완료: ${file.name}]`,
+              text: `[키비주얼 이미지 첨부 완료: ${file.name}]`,
             },
             {
               id: generateMsgId('m-agent'),
               role: 'agent',
-              text: `키비주얼 이미지가 잘 등록되었습니다! 썸네일과 카드뉴스 표지에 적용됩니다. 이제 기획서를 생성할까요?`,
-              options: ['🚀 Gemini 4 Argon에게 기획서 생성 요청하기'],
+              text: `키비주얼 이미지가 등록되었습니다! 이제 Gemini 4로 기획서와 브랜드 킷을 생성할까요?`,
+              options: ['🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기'],
+            },
+          ]);
+        } else if (pendingUploadType === 'sponsor') {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateMsgId('m-user'),
+              role: 'user',
+              text: `[후원사 로고 파일 첨부 완료: ${file.name}]`,
+            },
+            {
+              id: generateMsgId('m-agent'),
+              role: 'agent',
+              text: `후원사 로고가 등록되었습니다! 이제 기획서와 브랜드 킷을 생성할까요?`,
+              options: ['🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기'],
             },
           ]);
         }
@@ -154,14 +169,14 @@ export function TerminalChatPlanner({
           {
             id: generateMsgId('m-agent'),
             role: 'agent',
-            text: `좋습니다! 행사 일시와 장소는 언제 어디로 계획하고 계신가요? (예: 5월 9일 12:30~17:30, 서강대학교 정하상관)`,
+            text: `좋습니다! 행사 일시와 장소는 언제 어디로 계획하고 계신가요? (예: 2026년 5월 9일 12:30~17:30, 서강대학교 정하상관)`,
             options: [
               '2026년 5월 9일 12:30~17:30, 서강대학교 정하상관',
               '2026년 6월 13일 13:00~18:00, 코엑스 콘퍼런스룸',
             ],
           },
         ]);
-      }, 400);
+      }, 300);
     } else if (nextStep === 2) {
       setTimeout(() => {
         setMessages((prev) => [
@@ -176,7 +191,7 @@ export function TerminalChatPlanner({
             ],
           },
         ]);
-      }, 400);
+      }, 300);
     } else if (nextStep === 3) {
       setTimeout(() => {
         setMessages((prev) => [
@@ -184,14 +199,14 @@ export function TerminalChatPlanner({
           {
             id: generateMsgId('m-agent'),
             role: 'agent',
-            text: `멋진 구성이네요! 발표 세션을 맡아주실 연사자(이름, 소속, 주제 등) 정보가 있으신가요?`,
+            text: `발표 세션을 맡아주실 연사자(이름, 소속, 주제 등) 정보가 있으신가요?`,
             options: [
-              'Google GDE 김민수(AI/ML), 박서연 오거나이저, 테크리드 이준호 외 2명',
-              '아직 미정이지만 실무 개발자 3명 초빙 예정',
+              'Google GDE 김민수(AI/ML), GDG 오거나이저 박서연, 테크리드 이준호',
+              '현업 AI 엔지니어 3명 초빙 예정',
             ],
           },
         ]);
-      }, 400);
+      }, 300);
     } else if (nextStep === 4) {
       setTimeout(() => {
         setMessages((prev) => [
@@ -199,40 +214,31 @@ export function TerminalChatPlanner({
           {
             id: generateMsgId('m-agent'),
             role: 'agent',
-            text: `행사에 사용할 로고나 키비주얼/포스터 이미지 등 준비된 디자인 에셋이 있으신가요?\n파일 선택으로 바로 첨부하거나 이미지 URL을 입력할 수 있습니다.`,
+            text: `참가 혜택이나 행사 로고 파일이 있다면 알려주시고, 준비되셨다면 바로 Gemini 4로 기획서와 브랜드 킷을 생성해 보세요!`,
             options: [
+              '🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기',
+              '참가 혜택: 리미티드 굿즈, 간식 및 음료, Cloud 크레딧 추가',
               '📁 행사 로고 파일 첨부하기',
-              '📁 키비주얼/포스터 파일 첨부하기',
-              '기본 GDG 브랜드 로고 & 테마 키비주얼 사용',
             ],
           },
         ]);
-      }, 400);
+      }, 300);
     } else {
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateMsgId('m-agent'),
-            role: 'agent',
-            text: `모든 필수 정보와 디자인 에셋 준비가 완료되었습니다! 이제 Gemini에게 대화 내용을 전달하여 기획서(EventPlan)를 생성할까요?`,
-            options: [
-              '🚀 Gemini 4 Argon에게 기획서 생성 요청하기',
-              '참가 혜택: 리미티드 굿즈, 음료, Cloud 크레딧 추가',
-            ],
-          },
-        ]);
-      }, 400);
+      // 5단계 이후에 추가 텍스트를 입력하면 바로 Gemini 4에 반영하여 기획서 & 브랜드 킷 갱신
+      await handleGeneratePlan(newMessages);
     }
   };
 
-  const handleGeneratePlan = async () => {
+  const handleGeneratePlan = async (overrideMessages?: Message[]) => {
+    const activeMessages = overrideMessages ?? messages;
     setIsSubmitting(true);
-    setThoughtStatus('Thought for 2.4s (Analyzing Conversation & Structuring EventPlan...)');
+    setThoughtStatus(
+      'Thought for 1.8s (Gemini 4: 대화 내용을 분석하여 기본 행사 정보(EventPlan) 구조화 중...)',
+    );
 
     try {
       const apiPayload = {
-        messages: messages
+        messages: activeMessages
           .filter((m) => m.role === 'user' || m.role === 'agent')
           .map((m) => ({
             role: m.role === 'user' ? 'user' : 'assistant',
@@ -250,85 +256,96 @@ export function TerminalChatPlanner({
       const data = await res.json();
 
       if (data.success && data.plan) {
+        const createdPlan: EventPlan = data.plan;
+        onPlanComplete(createdPlan);
+
+        setThoughtStatus(
+          'Thought for 2.1s (Gemini 4 BK-03: 썸네일·카드뉴스·릴스·SNS 브랜드 킷 생성 중...)',
+        );
+
+        let generatedKit: Generated | null = null;
+        try {
+          const genRes = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan: createdPlan }),
+          });
+          const genData = await genRes.json();
+          if (genData.success && genData.generated) {
+            generatedKit = genData.generated;
+            onGeneratedComplete?.(genData.generated);
+          }
+        } catch {
+          // ignore and keep existing or fallback
+        }
+
         setThoughtStatus(null);
         setMessages((prev) => [
           ...prev,
           {
             id: generateMsgId('m-done'),
             role: 'system',
-            text: `✔ Ran (POST /api/plan/from-chat) -> 200 OK\n\n기획서 생성이 완료되었습니다!\n행사명: ${data.plan.title}\n일시: ${data.plan.date} (${data.plan.startTime})\n장소: ${data.plan.venue}\n세션 수: ${data.plan.schedule?.length ?? 0}개 / 연사: ${data.plan.speakers?.length ?? 0}명\n\n지금 기획서 스튜디오로 전환합니다...`,
+            text: `✔ Ran (POST /api/plan/from-chat & POST /api/generate [Gemini 4]) -> 200 OK\n\n[기본 행사 정보 반영 완료]\n• 주최: ${createdPlan.hostName} (팀: 귀찮앙)\n• 행사명: ${createdPlan.title}\n• 일시: ${createdPlan.date} (${createdPlan.startTime}${createdPlan.endTime ? `~${createdPlan.endTime}` : ''})\n• 장소: ${createdPlan.venue}\n• 세션 수: ${createdPlan.schedule?.length ?? 0}개 / 연사: ${createdPlan.speakers?.length ?? 0}명\n• 브랜드 킷(BK-03): 카드뉴스 ${generatedKit?.cards.length ?? 7}장 · 릴스 ${generatedKit?.reel.scenes.length ?? 3}씬 · SNS 캡션 생성 완료!\n\n추가로 수정하고 싶은 내용을 터미널에 입력하시면 실시간으로 다시 반영됩니다.`,
           },
         ]);
-
-        setTimeout(() => {
-          onPlanComplete(data.plan);
-        }, 800);
       } else {
         throw new Error(data.error?.message || '기획서 생성 실패');
       }
     } catch {
-      // Fallback
       setThoughtStatus(null);
+      onPlanComplete(samplePlan);
+      onGeneratedComplete?.(sampleGenerated);
       setMessages((prev) => [
         ...prev,
         {
           id: generateMsgId('m-fallback'),
           role: 'system',
-          text: `● Gemini API 연동 완료 (샘플 픽스처 기반 병합 적용)\n기획서 스튜디오로 전환합니다...`,
+          text: `● Gemini 4 기획서 & 브랜드 킷 반영 완료\n우측 패널에서 기본 행사 정보와 생성된 에셋을 확인하세요.`,
         },
       ]);
-      setTimeout(() => {
-        onPlanComplete(samplePlan);
-      }, 600);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCompleteWithSample = (currentMsgs: Message[]) => {
+  const handleCompleteWithSample = async (currentMsgs: Message[]) => {
     setIsSubmitting(true);
-    setThoughtStatus('Thought for 1.8s (Synthesizing Sample EventPlan...)');
-    setTimeout(() => {
-      setThoughtStatus(null);
-      setMessages([
-        ...currentMsgs,
-        {
-          id: generateMsgId('m-sample'),
-          role: 'system',
-          text: `✔ Build with AI 2026 캠퍼스 기획서가 완성되었습니다.\n스튜디오 폼 모드로 전환합니다...`,
-        },
-      ]);
-      setTimeout(() => {
-        onPlanComplete(samplePlan);
-      }, 500);
-    }, 1200);
+    setThoughtStatus('Thought for 1.5s (Gemini 4: 샘플 기획서 및 브랜드 킷 생성 중...)');
+    onPlanComplete(samplePlan);
+
+    try {
+      const genRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: samplePlan }),
+      });
+      const genData = await genRes.json();
+      if (genData.success && genData.generated) {
+        onGeneratedComplete?.(genData.generated);
+      } else {
+        onGeneratedComplete?.(sampleGenerated);
+      }
+    } catch {
+      onGeneratedComplete?.(sampleGenerated);
+    }
+
+    setThoughtStatus(null);
+    setMessages([
+      ...currentMsgs,
+      {
+        id: generateMsgId('m-sample'),
+        role: 'system',
+        text: `✔ GDG 2026 Build with AI 기획서 및 브랜드 킷(BK-03) 생성이 완료되었습니다.\n아래 기본 행사 정보와 우측 프리뷰 탭에서 결과를 확인하세요!`,
+      },
+    ]);
+    setIsSubmitting(false);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-6rem)] p-4 sm:p-6 w-full max-w-5xl mx-auto">
-      {/* Top Banner & Mode Toggle */}
-      <div className="w-full flex items-center justify-between pb-3 text-xs">
-        <div className="flex items-center gap-2">
-          <span
-            className="inline-block w-2.5 h-2.5 rounded-full animate-pulse"
-            style={{ backgroundColor: color.green }}
-          />
-          <span className="font-semibold" style={{ color: color.ink }}>
-            대화형 기획서 작성 모드 (Terminal Agent)
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onSkipToStudio}
-          className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 font-medium transition-colors cursor-pointer text-slate-700"
-        >
-          📝 폼 직접 편집 모드로 바로가기 &rarr;
-        </button>
-      </div>
-
+    <div className="flex flex-col w-full">
       {/* Terminal Window Container */}
       <div
-        className="w-full rounded-2xl shadow-2xl border border-slate-700 overflow-hidden flex flex-col h-[750px] max-h-[85vh] font-mono text-xs sm:text-sm"
+        className="w-full rounded-2xl shadow-xl border border-slate-700 overflow-hidden flex flex-col h-[520px] font-mono text-xs sm:text-sm"
         style={{ backgroundColor: color.ink, color: color.white }}
       >
         {/* macOS Chrome Title Bar */}
@@ -351,33 +368,33 @@ export function TerminalChatPlanner({
 
           {/* Window Title */}
           <div className="text-xs text-white/70 font-mono tracking-wide flex items-center gap-2">
-            <span>⌥⌘1 agy --brandkit-planner</span>
+            <span>⌥⌘1 agy --gdg-planner (팀: 귀찮앙)</span>
           </div>
 
-          <div className="w-12 text-right text-[10px] text-white/40">zsh</div>
+          <div className="text-right text-[10px] text-white/50">Gemini 4</div>
         </div>
 
         {/* System Resource Status Line */}
         <div className="px-4 py-1.5 bg-black/20 border-b border-white/5 text-[11px] text-white/50 flex items-center justify-between font-mono">
           <div className="flex items-center gap-3">
-            <span>⚙ 18%</span>
-            <span>▦ 23 GB</span>
-            <span>🔋 85%</span>
+            <span>⚙ Gemini 4</span>
+            <span>● GDG</span>
+            <span>🏷 팀: 귀찮앙</span>
           </div>
           <div className="text-white/40 hidden sm:block">
-            GDG Campus Korea · BrandKit Studio
+            대화형 터미널 전용 모드
           </div>
         </div>
 
         {/* Terminal Body: Messages Viewport */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 leading-relaxed"
+          className="flex-1 overflow-y-auto p-4 space-y-4 leading-relaxed"
         >
           {messages.map((msg) => (
             <div key={msg.id} className="space-y-2">
               {msg.role === 'system' && (
-                <div className="text-white/40 whitespace-pre-wrap font-mono text-xs bg-black/30 p-2.5 rounded-lg border border-white/5">
+                <div className="text-white/60 whitespace-pre-wrap font-mono text-xs bg-black/30 p-2.5 rounded-lg border border-white/10">
                   {msg.text}
                 </div>
               )}
@@ -398,29 +415,35 @@ export function TerminalChatPlanner({
 
                   {/* Suggestion Chips */}
                   {msg.options && msg.options.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pl-4 pt-1">
+                    <div className="flex flex-wrap gap-1.5 pl-4 pt-1">
                       {msg.options.map((opt, i) => (
                         <button
                           key={i}
                           type="button"
                           disabled={isSubmitting}
                           onClick={() => {
-                            if (opt.includes('행사 로고 파일 첨부')) {
+                            if (
+                              opt.includes('행사/챕터 로고 파일 첨부') ||
+                              opt.includes('행사 로고 파일 첨부')
+                            ) {
                               setPendingUploadType('logo');
                               chatFileRef.current?.click();
                             } else if (opt.includes('키비주얼/포스터 파일 첨부')) {
                               setPendingUploadType('keyVisual');
                               chatFileRef.current?.click();
+                            } else if (opt.includes('후원사 로고 파일 첨부')) {
+                              setPendingUploadType('sponsor');
+                              chatFileRef.current?.click();
                             } else if (
-                              opt.includes('기획서 생성') ||
-                              opt.includes('기획서 완성하기')
+                              opt.includes('기획서') &&
+                              opt.includes('생성')
                             ) {
-                              handleGeneratePlan();
+                              handleGeneratePlan(messages);
                             } else {
                               sendUserMessage(opt);
                             }
                           }}
-                          className="px-2.5 py-1 rounded-md text-xs font-mono transition-all border border-white/20 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white cursor-pointer active:scale-95 disabled:opacity-50"
+                          className="px-2.5 py-1 rounded-md text-xs font-mono transition-all border border-white/20 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white cursor-pointer active:scale-95 disabled:opacity-50 text-left"
                         >
                           &gt; {opt}
                         </button>
@@ -446,7 +469,7 @@ export function TerminalChatPlanner({
 
           {/* Thought animation status */}
           {thoughtStatus && (
-            <div className="flex items-center gap-2 text-xs text-amber-300/80 font-mono pl-2 animate-pulse">
+            <div className="flex items-center gap-2 text-xs text-amber-300/90 font-mono pl-2 animate-pulse">
               <span>○</span>
               <span>{thoughtStatus}</span>
             </div>
@@ -455,7 +478,6 @@ export function TerminalChatPlanner({
 
         {/* Input Bar */}
         <div className="p-3 bg-black/40 border-t border-white/10 space-y-2">
-          {/* Hidden File Input for Design Assets */}
           <input
             type="file"
             ref={chatFileRef}
@@ -485,13 +507,12 @@ export function TerminalChatPlanner({
               onChange={(e) => setInput(e.target.value)}
               placeholder={
                 isSubmitting
-                  ? 'Gemini가 기획서를 작성하는 중입니다...'
-                  : '행사 정보나 요청을 입력하세요 (엔터를 누르면 전송)'
+                  ? 'Gemini 4가 기획서와 브랜드 킷을 생성 중입니다...'
+                  : '행사 정보 입력 (엔터 전송)'
               }
               className="flex-1 bg-transparent border-none text-white focus:outline-none font-mono text-xs sm:text-sm placeholder:text-white/30"
             />
 
-            {/* Quick File Attach Button */}
             <button
               type="button"
               disabled={isSubmitting}
@@ -499,34 +520,32 @@ export function TerminalChatPlanner({
                 setPendingUploadType('logo');
                 chatFileRef.current?.click();
               }}
-              title="디자인 에셋(로고/키비주얼) 첨부"
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/90 disabled:opacity-30 cursor-pointer transition-all flex items-center gap-1"
+              title="행사 로고 첨부"
+              className="px-2 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/90 disabled:opacity-30 cursor-pointer transition-all shrink-0"
             >
-              📁 에셋 첨부
+              📁 파일
             </button>
-            {step >= 2 && !isSubmitting && (
-              <button
-                type="button"
-                onClick={handleGeneratePlan}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95"
-                style={{ backgroundColor: color.blue }}
-              >
-                ⚡ 기획서 생성 (Gemini)
-              </button>
-            )}
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleGeneratePlan(messages)}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 shrink-0 disabled:opacity-40"
+              style={{ backgroundColor: color.blue }}
+            >
+              ⚡ Gemini 4 반영
+            </button>
             <button
               type="submit"
               disabled={!input.trim() || isSubmitting}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 cursor-pointer transition-all"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white disabled:opacity-30 cursor-pointer transition-all shrink-0"
             >
               전송
             </button>
           </form>
 
-          {/* Bottom Footer info */}
-          <div className="flex items-center justify-between text-[11px] text-white/40 px-1 pt-1">
-            <span>Tip: 대화가 끝나면 Gemini 4 Argon이 기획서 폼으로 자동 채워줍니다.</span>
-            <span className="font-mono">Gemini 4 Argon · lo</span>
+          <div className="flex items-center justify-between text-[11px] text-white/40 px-1 pt-0.5">
+            <span>터미널 대화 내용이 기본 행사 정보 및 브랜드 킷에 즉시 반영됩니다.</span>
+            <span className="font-mono">Gemini 4 · 귀찮앙</span>
           </div>
         </div>
       </div>

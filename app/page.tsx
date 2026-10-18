@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useState, useSyncExternalStore } from 'react';
-import { PlanForm } from '@/components/PlanForm';
 import { TerminalChatPlanner } from '@/components/TerminalChatPlanner';
 import { type EventPlan, type Generated } from '@/lib/schema';
-import { color, themes } from '@/lib/tokens';
+import { brandCycle, color, themes } from '@/lib/tokens';
 import {
-  emptyPlan,
   loadGeneratedFromStorage,
   loadPlanFromStorage,
   sampleGenerated,
   samplePlan,
+  saveGeneratedToStorage,
   savePlanToStorage,
 } from '@/lib/storage';
 
@@ -25,42 +24,68 @@ export default function Home() {
 
   const [plan, setPlan] = useState<EventPlan>(() => {
     if (typeof window !== 'undefined') {
-      return loadPlanFromStorage();
+      const loaded = loadPlanFromStorage();
+      return {
+        ...loaded,
+        hostName:
+          loaded.hostName === 'GDG Campus Korea' ? 'GDG' : loaded.hostName || 'GDG',
+      };
     }
     return samplePlan;
   });
 
-  const [generated] = useState<Generated | null>(() => {
+  const [generated, setGenerated] = useState<Generated>(() => {
     if (typeof window !== 'undefined') {
       return loadGeneratedFromStorage();
     }
     return sampleGenerated;
   });
 
+  const [isGeneratingKit, setIsGeneratingKit] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     'all' | 'thumbnail' | 'cards' | 'reel' | 'sns'
   >('all');
-  const [viewMode, setViewMode] = useState<'terminal' | 'studio'>('terminal');
 
   const handlePlanChange = (updated: EventPlan) => {
-    setPlan(updated);
-    savePlanToStorage(updated);
+    const normalized: EventPlan = {
+      ...updated,
+      hostName:
+        updated.hostName === 'GDG Campus Korea'
+          ? 'GDG'
+          : updated.hostName || 'GDG',
+    };
+    setPlan(normalized);
+    savePlanToStorage(normalized);
   };
 
-  const handleLoadSample = () => {
-    setPlan(samplePlan);
-    savePlanToStorage(samplePlan);
+  const handleGeneratedChange = (updated: Generated) => {
+    setGenerated(updated);
+    saveGeneratedToStorage(updated);
   };
 
-  const handleReset = () => {
-    setPlan(emptyPlan);
-    savePlanToStorage(emptyPlan);
-  };
-
-  const handleGenerate = () => {
-    alert(
-      '✨ 기획서가 검증되었습니다. Gemini 전체 생성(/api/generate)은 BK-03 스프린트에서 연동됩니다.',
-    );
+  const handleGenerateBrandKit = async (targetPlan: EventPlan = plan) => {
+    setIsGeneratingKit(true);
+    setGenError(null);
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: targetPlan }),
+      });
+      const data = await res.json();
+      if (data.success && data.generated) {
+        handleGeneratedChange(data.generated);
+      } else {
+        setGenError(data.error?.message || '브랜드 킷 생성에 실패했습니다.');
+      }
+    } catch (err) {
+      setGenError(
+        err instanceof Error ? err.message : '브랜드 킷 생성 중 오류가 발생했습니다.',
+      );
+    } finally {
+      setIsGeneratingKit(false);
+    }
   };
 
   const currentTheme = themes[plan.theme] || themes.BUILD_WITH_AI;
@@ -97,78 +122,153 @@ export default function Home() {
           <h1 className="text-lg font-bold tracking-tight">
             GDG BrandKit &amp; Reels Studio
           </h1>
+          <span
+            className="px-2.5 py-0.5 rounded-full text-xs font-bold text-white"
+            style={{ backgroundColor: color.blue }}
+          >
+            팀 귀찮앙
+          </span>
         </div>
+
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() =>
-              setViewMode(viewMode === 'terminal' ? 'studio' : 'terminal')
-            }
-            className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-semibold cursor-pointer transition-colors"
-            style={{ color: color.ink }}
+            disabled={isGeneratingKit}
+            onClick={() => handleGenerateBrandKit(plan)}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer shadow-xs disabled:opacity-50"
+            style={{ backgroundColor: color.green }}
           >
-            {viewMode === 'terminal'
-              ? '📝 스튜디오 폼으로 이동'
-              : '💻 대화형 터미널 모드'}
+            {isGeneratingKit
+              ? '⏳ Gemini 4 생성 중...'
+              : '✨ 브랜드 킷 생성 (Gemini 4)'}
           </button>
           <span
             className="px-2.5 py-1 rounded-full text-xs font-semibold"
             style={{
               backgroundColor: color.paper,
               color: color.ink,
-              border: `1px solid ${color.paper}`,
             }}
           >
             테마: {currentTheme.label}
           </span>
-          <span className="text-xs font-medium text-slate-400 hidden sm:inline">
-            GDG Campus Korea
+          <span className="text-xs font-bold text-slate-600 hidden sm:inline">
+            GDG · 팀 귀찮앙
           </span>
         </div>
       </header>
 
-      {viewMode === 'terminal' ? (
-        <TerminalChatPlanner
-          onPlanComplete={(newPlan) => {
-            handlePlanChange(newPlan);
-            setViewMode('studio');
-          }}
-          onSkipToStudio={() => setViewMode('studio')}
-        />
-      ) : (
-        /* Main Workspace: Left (Plan Form) / Right (Asset Preview) */
-        <main className="grid flex-1 grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl w-full mx-auto">
-        {/* Left Column: Event Plan Web Form */}
-        <section
-          className="lg:col-span-5 rounded-2xl p-6 shadow-xs border border-slate-200 overflow-y-auto max-h-[calc(100vh-7rem)]"
-          style={{ backgroundColor: color.white }}
-        >
-          <div className="mb-4">
-            <h2 className="text-base font-bold" style={{ color: color.ink }}>
-              행사 기획서 입력 (BK-02)
-            </h2>
-            <p className="text-xs text-slate-500 mt-1">
-              한 곳에서 한 번만 입력하면 모든 에셋(썸네일·카드뉴스·릴스·문구)에
-              즉시 반영됩니다.
-            </p>
-          </div>
+      {/* Main Workspace: Left (Terminal + Basic Event Info Summary) / Right (BrandKit Preview) */}
+      <main className="grid flex-1 grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl w-full mx-auto">
+        {/* Left Column: Interactive Terminal + Basic Event Info Readout */}
+        <section className="lg:col-span-5 flex flex-col gap-5">
+          <TerminalChatPlanner
+            onPlanComplete={(newPlan) => {
+              handlePlanChange(newPlan);
+            }}
+            onGeneratedComplete={(newGen) => {
+              handleGeneratedChange(newGen);
+            }}
+          />
 
-          {isClient ? (
-            <PlanForm
-              plan={plan}
-              onChange={handlePlanChange}
-              onLoadSample={handleLoadSample}
-              onReset={handleReset}
-              onGenerate={handleGenerate}
-            />
-          ) : (
-            <div className="py-12 text-center text-xs text-slate-400">
-              기획서 로딩 중...
+          {/* 기본 행사 정보 (터미널 대화 실시간 반영 영역) */}
+          <div
+            className="rounded-2xl p-5 shadow-xs border border-slate-200 space-y-3"
+            style={{ backgroundColor: color.white }}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block w-2 h-4 rounded-full"
+                  style={{ backgroundColor: color.blue }}
+                />
+                <h2 className="text-sm font-bold" style={{ color: color.ink }}>
+                  기본 행사 정보 (터미널 연동 결과)
+                </h2>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                GDG · 귀찮앙
+              </span>
             </div>
-          )}
+
+            {isClient ? (
+              <div className="grid grid-cols-2 gap-2.5 text-xs">
+                <div className="col-span-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-semibold">
+                    행사 공식 명칭 (Title)
+                  </div>
+                  <div className="font-bold text-sm mt-0.5">
+                    {plan.title || '터미널에서 행사명을 입력해 주세요'}
+                  </div>
+                  {plan.hook && (
+                    <div className="text-slate-500 text-[11px] mt-0.5">
+                      &ldquo;{plan.hook}&rdquo;
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-semibold">
+                    테마 / 주최
+                  </div>
+                  <div className="font-semibold mt-0.5">
+                    {currentTheme.label} · {plan.hostName || 'GDG'}
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-semibold">
+                    일시 (Date &amp; Time)
+                  </div>
+                  <div className="font-semibold mt-0.5">
+                    {plan.date || '-'}{' '}
+                    {plan.startTime &&
+                      `(${plan.startTime}${plan.endTime ? `~${plan.endTime}` : ''})`}
+                  </div>
+                </div>
+
+                <div className="col-span-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-semibold">
+                    장소 (Venue) / 정원
+                  </div>
+                  <div className="font-semibold mt-0.5">
+                    {plan.venue || '-'}{' '}
+                    {plan.capacity ? `(정원 ${plan.capacity}명)` : ''}
+                  </div>
+                </div>
+
+                <div className="col-span-2 p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                  <div className="text-[10px] text-slate-400 font-semibold">
+                    프로그램 구성 &amp; 연사 ({plan.schedule.length}개 세션 /{' '}
+                    {plan.speakers.length}명)
+                  </div>
+                  <div className="font-medium text-slate-700 mt-0.5">
+                    {plan.programSummary ||
+                      plan.schedule.map((s) => s.title).join(', ') ||
+                      '-'}
+                  </div>
+                  {plan.perks.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {plan.perks.map((perk, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white border border-slate-200 text-slate-600"
+                        >
+                          🎁 {perk}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-400">
+                로딩 중...
+              </div>
+            )}
+          </div>
         </section>
 
-        {/* Right Column: Asset Preview with Live Fact Synchronization */}
+        {/* Right Column: BrandKit Asset Preview (4 Tabs: Thumbnail, Cards, Reel, SNS) */}
         <section
           className="lg:col-span-7 rounded-2xl p-6 shadow-xs border border-slate-200 flex flex-col max-h-[calc(100vh-7rem)] overflow-y-auto"
           style={{ backgroundColor: color.white }}
@@ -177,102 +277,58 @@ export default function Home() {
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
             <div>
               <h2 className="text-base font-bold" style={{ color: color.ink }}>
-                브랜드 킷 프리뷰
+                브랜드 킷 프리뷰 (Gemini 4 · BK-03)
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                사실 필드(일시·장소·연사 등) 변경 시 실시간으로 동기화됩니다.
+                터미널에서 대화한 기획서(EventPlan)와 Gemini 4 생성 문구(Generated)가 실시간 동기화됩니다.
               </p>
             </div>
 
             {/* Navigation tabs */}
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                  activeTab === 'all'
-                    ? 'bg-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                style={activeTab === 'all' ? { color: color.ink } : {}}
-              >
-                전체
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('thumbnail')}
-                className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                  activeTab === 'thumbnail'
-                    ? 'bg-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                style={activeTab === 'thumbnail' ? { color: color.ink } : {}}
-              >
-                썸네일
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('cards')}
-                className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                  activeTab === 'cards'
-                    ? 'bg-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                style={activeTab === 'cards' ? { color: color.ink } : {}}
-              >
-                카드뉴스
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('reel')}
-                className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                  activeTab === 'reel'
-                    ? 'bg-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                style={activeTab === 'reel' ? { color: color.ink } : {}}
-              >
-                릴스
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('sns')}
-                className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
-                  activeTab === 'sns'
-                    ? 'bg-white shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                style={activeTab === 'sns' ? { color: color.ink } : {}}
-              >
-                SNS 문구
-              </button>
+              {(
+                [
+                  ['all', '전체'],
+                  ['thumbnail', '썸네일'],
+                  ['cards', '카드뉴스'],
+                  ['reel', '릴스'],
+                  ['sns', 'SNS 문구'],
+                ] as const
+              ).map(([tabKey, label]) => (
+                <button
+                  key={tabKey}
+                  type="button"
+                  onClick={() => setActiveTab(tabKey)}
+                  className={`px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                    activeTab === tabKey
+                      ? 'bg-white shadow-xs font-semibold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  style={activeTab === tabKey ? { color: color.ink } : {}}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Live Fact Synchronization Banner */}
-          <div className="my-4 p-3 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center gap-2.5 text-xs text-blue-900">
-            <span
-              className="w-2 h-2 rounded-full shrink-0 animate-pulse"
-              style={{ backgroundColor: color.blue }}
-            />
-            <span>
-              <strong>실시간 사실 동기화 (Live Fact Binding):</strong> 좌측
-              기획서에서 일시, 장소, 타임테이블, 연사를 수정하면 다시 생성하지
-              않아도 아래 프리뷰에 즉시 반영됩니다.
-            </span>
-          </div>
+          {genError && (
+            <div className="mt-4 p-3 rounded-xl border border-red-200 bg-red-50 text-xs text-red-700 font-medium">
+              ⚠️ {genError}
+            </div>
+          )}
 
           {/* Preview Contents Container */}
-          <div className="space-y-6 flex-1">
-            {/* 1. 티켓팅 썸네일 미리보기 (이벤터스 1280x720 / 티켓타코 1200x630 목업) */}
+          <div className="space-y-6 flex-1 pt-4">
+            {/* 1. 티켓팅 썸네일 미리보기 */}
             {(activeTab === 'all' || activeTab === 'thumbnail') && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    티켓팅 썸네일 미리보기 (BK-04 연동 규격)
+                    1. 티켓팅 썸네일 (이벤터스 1280x720 · 티켓타코 1200x630)
                   </h3>
                   <span className="text-[11px] text-slate-400">
-                    이벤터스(16:9) · 티켓타코(1.91:1)
+                    Accent: {generated.thumbnail.style.accent}
                   </span>
                 </div>
 
@@ -283,10 +339,13 @@ export default function Home() {
                     color: currentTheme.coverText,
                   }}
                 >
-                  {/* Theme Accent Border Indicator */}
                   <div
                     className="absolute top-0 left-0 right-0 h-1.5"
-                    style={{ backgroundColor: color[currentTheme.primaryAccent] }}
+                    style={{
+                      backgroundColor:
+                        color[generated.thumbnail.style.accent] ||
+                        color[currentTheme.primaryAccent],
+                    }}
                   />
 
                   <div className="relative z-10 space-y-4">
@@ -303,13 +362,15 @@ export default function Home() {
                           </div>
                         )}
                         <span className="text-xs font-bold tracking-widest opacity-80 uppercase">
-                          {plan.year || '2026'} · {plan.hostName || 'GDG Campus Korea'}
+                          {plan.year || '2026'} · {plan.hostName || 'GDG'} · 팀 귀찮앙
                         </span>
                       </div>
                       <span
                         className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
                         style={{
-                          backgroundColor: color[currentTheme.primaryAccent],
+                          backgroundColor:
+                            color[generated.thumbnail.style.accent] ||
+                            color[currentTheme.primaryAccent],
                           color: color.white,
                         }}
                       >
@@ -319,18 +380,15 @@ export default function Home() {
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
                       <div className="flex-1 space-y-2">
-                        <h4 className="text-2xl font-black tracking-tight leading-snug">
-                          {plan.title || '행사명을 입력하세요'}
+                        <h4 className="text-2xl font-black tracking-tight leading-snug whitespace-pre-line">
+                          {plan.title || generated.thumbnail.headline}
                         </h4>
 
-                        {plan.hook && (
-                          <p className="text-sm font-medium opacity-80">
-                            &quot;{plan.hook}&quot;
-                          </p>
-                        )}
+                        <p className="text-sm font-medium opacity-80">
+                          {plan.hook || generated.thumbnail.subline}
+                        </p>
                       </div>
 
-                      {/* Key Visual Graphic if provided */}
                       {plan.designAssets?.keyVisualUrl && (
                         <div className="w-24 h-24 rounded-xl overflow-hidden border border-black/10 shrink-0 shadow-xs">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -343,35 +401,12 @@ export default function Home() {
                       )}
                     </div>
 
-                    {/* Sponsor Logos in Thumbnail Preview if present */}
-                    {plan.designAssets?.sponsorLogos &&
-                      plan.designAssets.sponsorLogos.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <span className="text-[10px] uppercase tracking-wider font-semibold opacity-60">
-                            후원:
-                          </span>
-                          {plan.designAssets.sponsorLogos.map((sp, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/5 text-[11px] font-medium"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={sp.logoUrl}
-                                alt={sp.name}
-                                className="w-3.5 h-3.5 object-contain"
-                              />
-                              <span>{sp.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
                     <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-semibold">
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/5">
                         <span>📅</span>
                         <span>
-                          {plan.date || '일시 미정'} {plan.startTime && `· ${plan.startTime}`}
+                          {plan.date || '일시 미정'}{' '}
+                          {plan.startTime && `· ${plan.startTime}`}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/5">
@@ -390,22 +425,22 @@ export default function Home() {
               </div>
             )}
 
-            {/* 2. 카드뉴스 슬라이드 미리보기 (1080x1350 규격 대응 목업) */}
+            {/* 2. 카드뉴스 슬라이드 미리보기 */}
             {(activeTab === 'all' || activeTab === 'cards') && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    인스타 카드뉴스 라이브 슬라이드 (BK-05 연동 규격)
+                    2. 인스타 카드뉴스 세트 ({generated.cards.length}장 · 1080x1350)
                   </h3>
                   <span className="text-[11px] text-slate-400">
-                    실시간 팩트 바인딩
+                    GDG 포맷 · 실시간 팩트 바인딩
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Slide 1: Timetable Slide */}
+                  {/* Slide: Timetable */}
                   <div
-                    className="rounded-2xl p-4 border border-slate-200 flex flex-col justify-between min-h-[260px]"
+                    className="rounded-2xl p-4 border border-slate-200 flex flex-col justify-between min-h-[240px]"
                     style={{ backgroundColor: color.paper }}
                   >
                     <div>
@@ -420,10 +455,10 @@ export default function Home() {
                           Time Table
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          슬라이드 03
+                          TIMETABLE
                         </span>
                       </div>
-                      <h5 className="font-bold text-sm mb-2">행사 타임테이블</h5>
+                      <h5 className="font-bold text-sm mb-2">{plan.title}</h5>
 
                       {plan.schedule.length === 0 ? (
                         <p className="text-xs text-slate-400 py-6 text-center">
@@ -431,7 +466,7 @@ export default function Home() {
                         </p>
                       ) : (
                         <div className="space-y-1.5">
-                          {plan.schedule.slice(0, 4).map((s, idx) => (
+                          {plan.schedule.slice(0, 5).map((s, idx) => (
                             <div
                               key={idx}
                               className={`flex items-center justify-between p-1.5 rounded text-xs ${
@@ -448,11 +483,6 @@ export default function Home() {
                               </span>
                             </div>
                           ))}
-                          {plan.schedule.length > 4 && (
-                            <p className="text-[10px] text-slate-400 text-center pt-1">
-                              +{plan.schedule.length - 4}개 세션 더 있음
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
@@ -462,9 +492,9 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Slide 2: Speakers Slide */}
+                  {/* Slide: Speakers */}
                   <div
-                    className="rounded-2xl p-4 border border-slate-200 flex flex-col justify-between min-h-[260px]"
+                    className="rounded-2xl p-4 border border-slate-200 flex flex-col justify-between min-h-[240px]"
                     style={{ backgroundColor: color.paper }}
                   >
                     <div>
@@ -476,7 +506,7 @@ export default function Home() {
                           Speakers
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          슬라이드 04
+                          SPEAKERS
                         </span>
                       </div>
                       <h5 className="font-bold text-sm mb-2">연사 라인업</h5>
@@ -501,7 +531,9 @@ export default function Home() {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <span>{sp.name ? sp.name.slice(0, 2) : '연사'}</span>
+                                  <span>
+                                    {sp.name ? sp.name.slice(0, 2) : '연사'}
+                                  </span>
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
@@ -519,55 +551,198 @@ export default function Home() {
                               </div>
                             </div>
                           ))}
-                          {plan.speakers.length > 3 && (
-                            <p className="text-[10px] text-slate-400 text-center pt-1">
-                              +{plan.speakers.length - 3}명 연사 더 있음
-                            </p>
-                          )}
                         </div>
                       )}
                     </div>
                     <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-200 flex justify-between">
-                      <span>{plan.hostName}</span>
+                      <span>GDG · 팀 귀찮앙</span>
                       <span>총 {plan.speakers.length}명</span>
                     </div>
                   </div>
                 </div>
+
+                {/* Generated Card Slides List */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                  {generated.cards.map((card, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs space-y-1"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
+                          style={{ backgroundColor: color[card.style.accent] }}
+                        >
+                          #{i + 1} {card.type}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {card.style.emphasis}
+                        </span>
+                      </div>
+                      <p className="font-semibold truncate text-slate-800">
+                        {'headline' in card
+                          ? card.headline
+                          : 'hookTitle' in card
+                            ? card.hookTitle
+                            : 'title' in card
+                              ? card.title
+                              : `D-${card.daysLeft}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* 3. 릴스 및 SNS 문구 미리보기 (Generated 연동) */}
-            {(activeTab === 'all' || activeTab === 'reel' || activeTab === 'sns') && (
+            {/* 3. 릴스 프리뷰 (Generated.reel 연동) */}
+            {(activeTab === 'all' || activeTab === 'reel') && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    생성된 에셋 미리보기 (릴스 / SNS 문구)
+                    3. 릴스 씬 구성 ({generated.reel.scenes.length}개 씬 · 총{' '}
+                    {generated.reel.scenes.reduce(
+                      (acc, s) => acc + s.durationSec,
+                      0,
+                    )}
+                    초)
                   </h3>
                   <span className="text-[11px] text-slate-400">
-                    Gemini 연동(BK-03) 대기
+                    1080x1920 · 60fps
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {generated.reel.scenes.map((scene, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-3"
+                      style={{ backgroundColor: color.paper }}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="px-2 py-0.5 rounded text-[10px] font-bold text-white"
+                            style={{
+                              backgroundColor:
+                                color[brandCycle[idx % brandCycle.length]],
+                            }}
+                          >
+                            Scene {idx + 1} · {scene.component}
+                          </span>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            {scene.durationSec}s (
+                            {Math.round(scene.durationSec * 60)}f)
+                          </span>
+                        </div>
+                        <p className="text-xs font-semibold text-slate-800">
+                          {scene.overlayText}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {scene.highlightWords.map((w, wIdx) => (
+                            <span
+                              key={wIdx}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
+                              style={{
+                                backgroundColor:
+                                  color[brandCycle[wIdx % brandCycle.length]],
+                              }}
+                            >
+                              {w}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. SNS 문구 미리보기 (Generated.sns 연동) */}
+            {(activeTab === 'all' || activeTab === 'sns') && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    4. SNS 홍보 문구 (인스타 캡션 · 스레드 본문 &amp; 대댓글)
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Gemini 4 생성 완료
                   </span>
                 </div>
 
                 <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-semibold text-slate-700">
-                      인스타그램 캡션 예시
+                      인스타그램 캡션 ({generated.sns.instagramCaption.length}
+                      /2,200자)
                     </span>
-                    <span className="text-slate-400">
-                      {generated?.sns.instagramCaption ? '생성 완료' : '샘플 데이터'}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigator.clipboard?.writeText(
+                          generated.sns.instagramCaption,
+                        )
+                      }
+                      className="px-2 py-1 rounded bg-white border border-slate-200 text-[11px] font-semibold hover:bg-slate-100 cursor-pointer"
+                    >
+                      📋 복사
+                    </button>
                   </div>
-                  <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed bg-white p-3 rounded-lg border border-slate-200 max-h-36 overflow-y-auto">
-                    {generated?.sns.instagramCaption ||
-                      `[${plan.title || '행사'}] 참여 신청 안내\n\n일시: ${plan.date} ${plan.startTime}\n장소: ${plan.venue}\n신청: ${plan.registration.url}`}
+                  <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed bg-white p-3 rounded-lg border border-slate-200 max-h-40 overflow-y-auto">
+                    {generated.sns.instagramCaption}
                   </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-700">
+                          스레드 본문 ({generated.sns.threadsMain.length}/500자)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigator.clipboard?.writeText(
+                              generated.sns.threadsMain,
+                            )
+                          }
+                          className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-semibold hover:bg-slate-100 cursor-pointer"
+                        >
+                          📋 복사
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-600 whitespace-pre-line bg-white p-2.5 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
+                        {generated.sns.threadsMain}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-700">
+                          스레드 대댓글 (신청 링크)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigator.clipboard?.writeText(
+                              generated.sns.threadsReply,
+                            )
+                          }
+                          className="px-2 py-0.5 rounded bg-white border border-slate-200 text-[11px] font-semibold hover:bg-slate-100 cursor-pointer"
+                        >
+                          📋 복사
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-600 whitespace-pre-line bg-white p-2.5 rounded-lg border border-slate-200 max-h-32 overflow-y-auto">
+                        {generated.sns.threadsReply}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </section>
       </main>
-      )}
     </div>
   );
 }

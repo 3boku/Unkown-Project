@@ -18,7 +18,7 @@ export const emptyPlan: EventPlan = {
   theme: 'BUILD_WITH_AI',
   year: '2026',
   title: '',
-  hostName: 'GDG Campus Korea',
+  hostName: 'GDG',
   hook: '',
   description: '',
   date: '',

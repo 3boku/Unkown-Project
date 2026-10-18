@@ -1,5 +1,9 @@
 import type { GoogleGenAI, Part } from "@google/genai";
-import { getDefaultGeminiModel, getGeminiClient } from "./client.ts";
+import {
+  getDefaultGeminiModel,
+  getGeminiClient,
+  resolveApiModelName,
+} from "./client.ts";
 import { resolvePromptTemplate } from "./prompts.ts";
 import {
   GeminiError,
@@ -34,7 +38,7 @@ function buildGenerateConfig(
       merged.responseMimeType = config.responseMimeType;
     }
     if (config.responseSchema) {
-      merged.responseSchema = config.responseSchema;
+      merged.responseJsonSchema = config.responseSchema;
     }
   }
 
@@ -58,18 +62,21 @@ export async function generateText(
   }
 
   const ai = clientOverride ?? getGeminiClient();
-  const model = options.model?.trim() || getDefaultGeminiModel();
+  const displayModel = options.model?.trim() || getDefaultGeminiModel();
+  const apiModel = clientOverride
+    ? displayModel
+    : resolveApiModelName(displayModel);
 
   try {
     const response = await ai.models.generateContent({
-      model,
+      model: apiModel,
       contents: prompt,
       config: buildGenerateConfig(options.systemInstruction, options.config),
     });
 
     return {
       text: response.text ?? "",
-      model,
+      model: displayModel,
       usage: response.usageMetadata
         ? {
             promptTokenCount: response.usageMetadata.promptTokenCount,
@@ -164,19 +171,22 @@ export async function generateMultimodal(
   }
 
   const ai = clientOverride ?? getGeminiClient();
-  const model = options.model?.trim() || getDefaultGeminiModel();
+  const displayModel = options.model?.trim() || getDefaultGeminiModel();
+  const apiModel = clientOverride
+    ? displayModel
+    : resolveApiModelName(displayModel);
   const parts: Part[] = [...options.media, { text: finalPrompt }];
 
   try {
     const response = await ai.models.generateContent({
-      model,
+      model: apiModel,
       contents: [{ role: "user", parts }],
       config: buildGenerateConfig(systemInstruction, mergedConfig),
     });
 
     return {
       text: response.text ?? "",
-      model,
+      model: displayModel,
       templateId: resolvedTemplateId,
       usage: response.usageMetadata
         ? {

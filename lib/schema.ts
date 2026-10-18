@@ -68,7 +68,7 @@ export const EventPlanSchema = z.object({
   theme: ThemeSchema,
   year: z.string().min(1),
   title: z.string().min(1),
-  hostName: z.string().default('GDG Campus Korea'),
+  hostName: z.string().default('GDG'),
   hook: z.string().default(''),
   description: z.string().default(''),
   date: z.string().min(1),
