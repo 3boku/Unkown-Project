@@ -60,8 +60,7 @@ export default function Home() {
         >
           <h2 className="text-base font-bold mb-2">행사 기획서 입력</h2>
           <p className="text-sm opacity-60 mb-4">
-            기획서 폼(BK-02)이 이 영역에 표시됩니다. 현재 샘플 기획서(
-            {samplePlan.title})가 연결되어 있습니다.
+            현재 샘플 기획서({samplePlan.title})가 연결되어 있습니다.
           </p>
           <div
             className="rounded-xl p-4 border text-xs space-y-1.5"
@@ -105,7 +104,7 @@ export default function Home() {
                   borderColor: color.ink,
                 }}
               >
-                Tab 1 · 티켓팅 썸네일 2종 (BK-04)
+                티켓팅 썸네일 2종
               </button>
               <button
                 type="button"
@@ -118,14 +117,14 @@ export default function Home() {
                   borderColor: color.ink,
                 }}
               >
-                Tab 2 · 인스타 카드뉴스 세트 (BK-05)
+                인스타 카드뉴스 세트
               </button>
             </div>
 
             <span className="text-xs font-medium opacity-60">
               {activeTab === 'thumbnail'
-                ? 'BK-04 · 1280×720 & 1200×630 PNG'
-                : 'BK-05 · 1080×1350 PNG'}
+                ? '1280×720 & 1200×630 PNG'
+                : '1080×1350 PNG'}
             </span>
           </div>
 
