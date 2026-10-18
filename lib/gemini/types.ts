@@ -34,6 +34,10 @@ export interface GeminiGenerationConfig {
   maxOutputTokens?: number;
   stopSequences?: string[];
   responseMimeType?: string;
+  responseJsonSchema?: Record<string, unknown>;
+  thinkingConfig?: {
+    thinkingBudget?: number;
+  };
 }
 
 export interface PromptTemplateConfig {

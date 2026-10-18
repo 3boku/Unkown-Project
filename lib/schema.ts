@@ -69,6 +69,9 @@ export const EventPlanSchema = z.object({
     platform: 'EVENTUS',
     url: '',
   }),
+  registrationUrl: z
+    .string()
+    .default('https://event-us.kr/gdgcampuskorea/event/2026-build-with-ai'),
   schedule: z.array(ScheduleItemSchema).default([]),
   speakers: z.array(SpeakerSchema).default([]),
   specialEvents: z.array(SpecialEventSchema).default([]),
@@ -92,7 +95,9 @@ export const ThumbnailSchema = z.object({
   subline: z.string(),
   style: AssetStyleSchema,
 });
+export const ThumbnailCopySchema = ThumbnailSchema;
 export type Thumbnail = z.infer<typeof ThumbnailSchema>;
+export type ThumbnailCopy = Thumbnail;
 
 export const IntroSectionSchema = z.object({
   label: z.string(),
@@ -178,9 +183,12 @@ export const ReelSchema = z.object({
 export type Reel = z.infer<typeof ReelSchema>;
 
 export const SnsSchema = z.object({
-  instagramCaption: z.string(),
-  threadsMain: z.string(),
+  instagramCaption: z.string().default(''),
+  threadsMain: z.string().default(''),
   threadsReply: z.string(),
+  instagram: z.string().default(''),
+  hashtags: z.array(z.string()).default([]),
+  threads: z.string().default(''),
 });
 export type Sns = z.infer<typeof SnsSchema>;
 

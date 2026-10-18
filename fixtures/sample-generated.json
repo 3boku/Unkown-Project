@@ -117,7 +117,19 @@
   },
   "sns": {
     "instagramCaption": "AI로 어디까지 만들 수 있을까?\n\n혼자 문서만 보며 막막했던 AI 서비스 개발,\n직접 코드를 치며 질문할 수 있는 핸즈온이 필요하셨나요?\n\nGDG Campus Korea가 준비한 2026 Build with AI Hands-on Campus에서\nGemini와 Google Cloud를 활용한 나만의 AI 프로덕트를 완성해 보세요!\n\n📌 상세 타임테이블과 최신 연사자 정보는 프로필 링크에서 확인해주세요\n\n🔥 프로그램 구성\n- 총 9개의 Hands-on과 3개의 Session\n- Gemini Structured Outputs, Next.js + Cloud Run 배포, 멀티모달 RAG 실습\n- 주니어 개발자를 위한 AI 페어 프로그래밍 및 서버리스 아키텍처 세션\n\n🛠️ 행사 특징\n- 일시: 2026-05-09 (12:30 ~ 17:30)\n- 장소: 서강대학교 정하상관\n- 대상: 대학생, 취업 준비생, 주니어 개발자 (정원 200명)\n- 혜택: 리미티드 굿즈, 간식 및 음료, Google Cloud 크레딧, 스탬프 투어 & 1:1 멘토링\n\n#GDG #GDGCampusKorea #BuildWithAI #Gemini #GoogleCloud #개발자행사 #핸즈온 #대학생개발자",
+    "instagram": "AI로 어디까지 만들 수 있을까?\n\n혼자 문서만 보며 막막했던 AI 서비스 개발,\n직접 코드를 치며 질문할 수 있는 핸즈온이 필요하셨나요?\n\nGDG Campus Korea가 준비한 2026 Build with AI Hands-on Campus에서\nGemini와 Google Cloud를 활용한 나만의 AI 프로덕트를 완성해 보세요!\n\n📌 상세 타임테이블과 최신 연사자 정보는 프로필 링크에서 확인해주세요\n\n🔥 프로그램 구성\n- 총 9개의 Hands-on과 3개의 Session\n- Gemini Structured Outputs, Next.js + Cloud Run 배포, 멀티모달 RAG 실습\n- 주니어 개발자를 위한 AI 페어 프로그래밍 및 서버리스 아키텍처 세션\n\n🛠️ 행사 특징\n- 일시: 2026-05-09 (12:30 ~ 17:30)\n- 장소: 서강대학교 정하상관\n- 대상: 대학생, 취업 준비생, 주니어 개발자 (정원 200명)\n- 혜택: 리미티드 굿즈, 간식 및 음료, Google Cloud 크레딧, 스탬프 투어 & 1:1 멘토링",
+    "hashtags": [
+      "#GDG",
+      "#GDGCampusKorea",
+      "#BuildWithAI",
+      "#Gemini",
+      "#GoogleCloud",
+      "#개발자행사",
+      "#핸즈온",
+      "#대학생개발자"
+    ],
     "threadsMain": "AI로 어디까지 만들 수 있을까? 🤔\n\n2026 Build with AI Hands-on Campus 참가자를 모집합니다!\n\n📅 2026-05-09 (12:30 ~ 17:30)\n📍 서강대학교 정하상관\n💻 총 9개의 Hands-on과 3개의 Session\n🎁 리미티드 굿즈 · 간식 및 음료 · Google Cloud 크레딧 제공\n\nGemini와 Cloud Run을 직접 실습하고 현업 개발자 멘토링까지 한 번에 경험해 보세요!",
+    "threads": "AI로 어디까지 만들 수 있을까? 🤔\n\n2026 Build with AI Hands-on Campus 참가자를 모집합니다!\n\n📅 2026-05-09 (12:30 ~ 17:30)\n📍 서강대학교 정하상관\n💻 총 9개의 Hands-on과 3개의 Session\n🎁 리미티드 굿즈 · 간식 및 음료 · Google Cloud 크레딧 제공\n\nGemini와 Cloud Run을 직접 실습하고 현업 개발자 멘토링까지 한 번에 경험해 보세요!",
     "threadsReply": "👉 참가 신청 바로가기 (선착순 200명, ~2026-05-06 마감)\nhttps://event-us.kr/gdgcampuskorea/event/2026-build-with-ai"
   }
 }
