@@ -17,6 +17,7 @@ import {
   generateMultimodal,
 } from "../service.ts";
 import { GeminiError } from "../types.ts";
+import { resolveApiModelName } from "../client.ts";
 
 describe("Prompt Template System", () => {
   it("interpolates variables into template strings", () => {
@@ -162,6 +163,46 @@ describe("Gemini Service Layer (with Mock Client)", () => {
     assert.equal(res.model, "gemini-2.5-flash");
     assert.equal(res.usage?.totalTokenCount, 20);
     assert.equal(mock.calls.length, 1);
+  });
+
+  it("generateText strips zod safe-integer bounds from responseJsonSchema", async () => {
+    const mock = createMockClient();
+    await generateText(
+      {
+        prompt: "스키마 테스트",
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              seed: { type: "integer", minimum: -Number.MAX_SAFE_INTEGER, maximum: Number.MAX_SAFE_INTEGER },
+              index: { type: "integer", minimum: 0 },
+            },
+          },
+        },
+      },
+      mock.client as never
+    );
+
+    const sent = (mock.calls[0] as { config: { responseJsonSchema: unknown } }).config.responseJsonSchema;
+    assert.deepEqual(sent, {
+      type: "object",
+      properties: { seed: { type: "integer" }, index: { type: "integer", minimum: 0 } },
+    });
+  });
+
+  it("resolveApiModelName maps gemini-4 aliases to argon with an API key", () => {
+    const prev = process.env.GEMINI_API_KEY;
+    try {
+      process.env.GEMINI_API_KEY = "test-key";
+      assert.equal(resolveApiModelName("gemini-4"), "gemini-4-argon");
+      assert.equal(resolveApiModelName("gemini-2.5-flash"), "gemini-2.5-flash");
+      delete process.env.GEMINI_API_KEY;
+      assert.equal(resolveApiModelName("gemini-4-argon"), "gemini-3-flash-preview");
+    } finally {
+      if (prev === undefined) delete process.env.GEMINI_API_KEY;
+      else process.env.GEMINI_API_KEY = prev;
+    }
   });
 
   it("generateFromTemplate renders template and invokes SDK", async () => {

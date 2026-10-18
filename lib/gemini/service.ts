@@ -14,6 +14,21 @@ import {
   type GenerateTextOptions,
 } from "./types.ts";
 
+// zod's .int() emits minimum/maximum of ±Number.MAX_SAFE_INTEGER, which the
+// Gemini API rejects with 400 INVALID_ARGUMENT.
+function stripSafeIntegerBounds(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(stripSafeIntegerBounds);
+  if (!schema || typeof schema !== "object") return schema;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(schema)) {
+    const isSafeIntBound =
+      (key === "minimum" || key === "maximum") &&
+      Math.abs(value as number) === Number.MAX_SAFE_INTEGER;
+    if (!isSafeIntBound) out[key] = stripSafeIntegerBounds(value);
+  }
+  return out;
+}
+
 function buildGenerateConfig(
   systemInstruction?: string,
   config?: GeminiGenerationConfig
@@ -39,7 +54,7 @@ function buildGenerateConfig(
     }
     const jsonSchema = config.responseJsonSchema ?? config.responseSchema;
     if (jsonSchema !== undefined) {
-      merged.responseJsonSchema = jsonSchema;
+      merged.responseJsonSchema = stripSafeIntegerBounds(jsonSchema);
     }
     if (config.thinkingConfig) {
       merged.thinkingConfig = config.thinkingConfig;
