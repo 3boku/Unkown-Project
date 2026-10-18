@@ -40,5 +40,5 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 - [SPEC — 기술 명세](docs/gdg-brandkit-studio/SPEC.md)
 - [PRD — 제품 요구사항 정의서](docs/gdg-brandkit-studio/PRD.md)
 - [BACKLOG — 백로그 (WWA)](docs/gdg-brandkit-studio/BACKLOG.md)
-- [AGENTS — 에이전트 작업 규칙](docs/gdg-brandkit-studio/AGENTS.md)
+- [AGENTS — 에이전트 작업 규칙](AGENTS.md)
 
