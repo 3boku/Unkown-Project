@@ -10,6 +10,16 @@ export interface CardNewsPreviewProps {
   cards: CardSlide[];
 }
 
+export function buildCardSlideFilename(idx: number, slide: CardSlide): string {
+  const num = String(idx + 1).padStart(2, '0');
+  const typeSlug = slide.type.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return `gdg-card-${num}-${typeSlug}.png`;
+}
+
+export function buildAllCardSlideFilenames(slides: CardSlide[]): string[] {
+  return slides.map((slide, idx) => buildCardSlideFilename(idx, slide));
+}
+
 function arrayBufferToDataUrl(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -32,6 +42,10 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
   const [loadingMap, setLoadingMap] = useState<Record<number, boolean>>({});
   const [errorMap, setErrorMap] = useState<Record<number, string>>({});
   const [isDownloading, setIsDownloading] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
   const downloadFormRef = useRef<HTMLFormElement | null>(null);
   const downloadInputRef = useRef<HTMLInputElement | null>(null);
@@ -100,10 +114,22 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
 
   const triggerSlideDownload = useCallback(
     (idx: number, slide: CardSlide) => {
-      const filename = `gdg-card-${String(idx + 1).padStart(2, '0')}-${slide.type.toLowerCase()}.png`;
+      const filename = buildCardSlideFilename(idx, slide);
 
-      // 1. 서버 Content-Disposition: attachment 폼 제출 (임베디드 브라우저 및 모든 웹 브라우저 호환)
-      if (downloadFormRef.current && downloadInputRef.current) {
+      // 1. 서버 Content-Disposition: attachment 폼 제출
+      // 연속 다운로드 시 이전 요청이 취소되지 않도록 슬라이드별 숨김 iframe을 타겟으로 지정
+      if (
+        typeof document !== 'undefined' &&
+        downloadFormRef.current &&
+        downloadInputRef.current
+      ) {
+        const frameName = `gdg-card-dl-frame-${idx}-${Date.now()}`;
+        const iframe = document.createElement('iframe');
+        iframe.name = frameName;
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        downloadFormRef.current.target = frameName;
         downloadInputRef.current.value = JSON.stringify({
           plan,
           slide,
@@ -112,6 +138,12 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
           filename,
         });
         downloadFormRef.current.submit();
+
+        window.setTimeout(() => {
+          if (iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 15000);
         return;
       }
 
@@ -130,12 +162,28 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
   );
 
   const handleDownloadCurrent = () => {
-    if (!currentSlide || isDownloading) return;
+    if (!currentSlide || isDownloading || batchProgress !== null) return;
     setIsDownloading(true);
     try {
       triggerSlideDownload(currentIndex, currentSlide);
     } finally {
       setTimeout(() => setIsDownloading(false), 600);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (total === 0 || isDownloading || batchProgress !== null) return;
+    setBatchProgress({ current: 0, total });
+    try {
+      for (let idx = 0; idx < normalizedCards.length; idx++) {
+        setBatchProgress({ current: idx + 1, total });
+        triggerSlideDownload(idx, normalizedCards[idx]);
+        if (idx < normalizedCards.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 450));
+        }
+      }
+    } finally {
+      setTimeout(() => setBatchProgress(null), 600);
     }
   };
 
@@ -151,6 +199,8 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
       </div>
     );
   }
+
+  const isBusyDownloading = isDownloading || batchProgress !== null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -183,7 +233,7 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
           <span className="text-xs opacity-60">(1080 × 1350 px · 4:5)</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={handlePrev}
@@ -213,7 +263,7 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
           <button
             type="button"
             onClick={handleDownloadCurrent}
-            disabled={!currentSlide || isDownloading}
+            disabled={!currentSlide || isBusyDownloading}
             className="px-4 py-1.5 rounded-lg text-xs font-bold border transition disabled:opacity-40 cursor-pointer"
             style={{
               backgroundColor: color.blue,
@@ -222,6 +272,21 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
             }}
           >
             {isDownloading ? '다운로드 준비 중...' : 'PNG 다운로드'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleDownloadAll()}
+            disabled={total === 0 || isBusyDownloading}
+            className="px-4 py-1.5 rounded-lg text-xs font-bold border transition disabled:opacity-40 cursor-pointer"
+            style={{
+              backgroundColor: color.ink,
+              color: color.white,
+              borderColor: color.ink,
+            }}
+          >
+            {batchProgress
+              ? `전체 다운로드 중 (${batchProgress.current}/${batchProgress.total})...`
+              : `전체 다운로드 (${total}장)`}
           </button>
         </div>
       </div>
