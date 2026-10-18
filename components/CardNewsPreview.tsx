@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CardSlide, EventPlan } from '../lib/schema.ts';
 import { normalizeCardSlidesForPlan } from '../lib/speaker-photo.ts';
 import { brandCycle, color } from '../lib/tokens.ts';
@@ -8,6 +8,17 @@ import { brandCycle, color } from '../lib/tokens.ts';
 export interface CardNewsPreviewProps {
   plan: EventPlan;
   cards: CardSlide[];
+}
+
+function arrayBufferToDataUrl(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return `data:image/png;base64,${btoa(binary)}`;
 }
 
 export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
@@ -20,6 +31,10 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
   const [imageUrls, setImageUrls] = useState<Record<number, string>>({});
   const [loadingMap, setLoadingMap] = useState<Record<number, boolean>>({});
   const [errorMap, setErrorMap] = useState<Record<number, string>>({});
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadFormRef = useRef<HTMLFormElement | null>(null);
+  const downloadInputRef = useRef<HTMLInputElement | null>(null);
 
   const total = normalizedCards.length;
   const currentIndex = total > 0 ? Math.min(activeIndex, total - 1) : 0;
@@ -50,15 +65,10 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
           throw new Error(`카드 렌더링 실패 (HTTP ${res.status})`);
         }
 
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
+        const buffer = await res.arrayBuffer();
+        const dataUrl = arrayBufferToDataUrl(buffer);
 
-        setImageUrls((prev) => {
-          if (prev[idx]) {
-            URL.revokeObjectURL(prev[idx]);
-          }
-          return { ...prev, [idx]: objectUrl };
-        });
+        setImageUrls((prev) => ({ ...prev, [idx]: dataUrl }));
       } catch (err) {
         setErrorMap((prev) => ({
           ...prev,
@@ -88,15 +98,45 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
     setActiveIndex((prev) => (prev < total - 1 ? prev + 1 : 0));
   };
 
+  const triggerSlideDownload = useCallback(
+    (idx: number, slide: CardSlide) => {
+      const filename = `gdg-card-${String(idx + 1).padStart(2, '0')}-${slide.type.toLowerCase()}.png`;
+
+      // 1. 서버 Content-Disposition: attachment 폼 제출 (임베디드 브라우저 및 모든 웹 브라우저 호환)
+      if (downloadFormRef.current && downloadInputRef.current) {
+        downloadInputRef.current.value = JSON.stringify({
+          plan,
+          slide,
+          slideIndex: idx,
+          totalSlides: total,
+          filename,
+        });
+        downloadFormRef.current.submit();
+        return;
+      }
+
+      // 2. Fallback: data URL 직접 다운로드
+      const dataUrl = imageUrls[idx];
+      if (dataUrl) {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    },
+    [imageUrls, plan, total]
+  );
+
   const handleDownloadCurrent = () => {
-    const url = imageUrls[currentIndex];
-    if (!url || !currentSlide) return;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `gdg-card-${String(currentIndex + 1).padStart(2, '0')}-${currentSlide.type.toLowerCase()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    if (!currentSlide || isDownloading) return;
+    setIsDownloading(true);
+    try {
+      triggerSlideDownload(currentIndex, currentSlide);
+    } finally {
+      setTimeout(() => setIsDownloading(false), 600);
+    }
   };
 
   if (total === 0) {
@@ -114,6 +154,16 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 브라우저/웹뷰 네이티브 다운로드 트리거용 form (Content-Disposition: attachment 응답이므로 현재 페이지 유지) */}
+      <form
+        ref={downloadFormRef}
+        method="POST"
+        action="/api/render/card?download=1"
+        className="hidden"
+      >
+        <input ref={downloadInputRef} type="hidden" name="payload" defaultValue="" />
+      </form>
+
       {/* 상단 컨트롤 바 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -163,7 +213,7 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
           <button
             type="button"
             onClick={handleDownloadCurrent}
-            disabled={!imageUrls[currentIndex]}
+            disabled={!currentSlide || isDownloading}
             className="px-4 py-1.5 rounded-lg text-xs font-bold border transition disabled:opacity-40 cursor-pointer"
             style={{
               backgroundColor: color.blue,
@@ -171,7 +221,7 @@ export function CardNewsPreview({ plan, cards }: CardNewsPreviewProps) {
               borderColor: color.ink,
             }}
           >
-            PNG 다운로드
+            {isDownloading ? '다운로드 준비 중...' : 'PNG 다운로드'}
           </button>
         </div>
       </div>

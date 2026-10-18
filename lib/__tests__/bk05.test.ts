@@ -293,4 +293,36 @@ describe('BK-05 Acceptance Criteria — 인스타 카드뉴스 세트 (1080x1350
       `Found hex literals outside lib/tokens.ts: ${violations.join('; ')}`
     );
   });
+
+  it('supports form-POST download with Content-Disposition: attachment header', async () => {
+    const { plan, generated } = loadSampleFixtures();
+    const formBody = new URLSearchParams({
+      payload: JSON.stringify({
+        plan,
+        slide: generated.cards[0],
+        slideIndex: 0,
+        totalSlides: generated.cards.length,
+        filename: 'gdg-card-01-cover.png',
+      }),
+    });
+
+    const req = new Request('http://localhost:3000/api/render/card?download=1', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: formBody.toString(),
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ kind: 'card' }) });
+    assert.equal(res.status, 200);
+    assert.equal(
+      res.headers.get('content-disposition'),
+      'attachment; filename="gdg-card-01-cover.png"'
+    );
+
+    const buf = Buffer.from(await res.arrayBuffer());
+    const { width, height } = parsePngDimensions(buf);
+    assert.equal(width, 1080);
+    assert.equal(height, 1350);
+  });
 });
+
