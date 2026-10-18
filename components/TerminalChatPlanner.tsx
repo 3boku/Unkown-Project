@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { type EventPlan, type Generated } from '@/lib/schema';
+import { EventPlanSchema, type EventPlan } from '@/lib/schema';
 import { color } from '@/lib/tokens';
-import { sampleGenerated, samplePlan } from '@/lib/storage';
+import { samplePlan } from '@/lib/storage';
 
 interface TerminalChatPlannerProps {
   onPlanComplete: (plan: EventPlan) => void;
-  onGeneratedComplete?: (generated: Generated) => void;
 }
 
 interface Message {
@@ -43,7 +42,6 @@ const generateMsgId = (prefix: string) => `${prefix}-${++msgIdCounter}`;
 
 export function TerminalChatPlanner({
   onPlanComplete,
-  onGeneratedComplete,
 }: TerminalChatPlannerProps) {
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [input, setInput] = useState('');
@@ -90,10 +88,10 @@ export function TerminalChatPlanner({
             {
               id: generateMsgId('m-agent'),
               role: 'agent',
-              text: `로고 파일이 등록되었습니다! 이제 Gemini 4로 기획서와 브랜드 킷을 생성할까요?`,
+              text: `로고 파일이 등록되었습니다! 이제 Gemini 4로 기획서를 만들고 스튜디오로 이동할까요?`,
               options: [
                 '📁 키비주얼/포스터 파일 첨부하기',
-                '🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기',
+                '🚀 Gemini 4로 기획서 생성하고 스튜디오 열기',
               ],
             },
           ]);
@@ -109,8 +107,8 @@ export function TerminalChatPlanner({
             {
               id: generateMsgId('m-agent'),
               role: 'agent',
-              text: `키비주얼 이미지가 등록되었습니다! 이제 Gemini 4로 기획서와 브랜드 킷을 생성할까요?`,
-              options: ['🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기'],
+              text: `키비주얼 이미지가 등록되었습니다! 이제 Gemini 4로 기획서를 만들고 스튜디오로 이동할까요?`,
+              options: ['🚀 Gemini 4로 기획서 생성하고 스튜디오 열기'],
             },
           ]);
         } else if (pendingUploadType === 'sponsor') {
@@ -124,8 +122,8 @@ export function TerminalChatPlanner({
             {
               id: generateMsgId('m-agent'),
               role: 'agent',
-              text: `후원사 로고가 등록되었습니다! 이제 기획서와 브랜드 킷을 생성할까요?`,
-              options: ['🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기'],
+              text: `후원사 로고가 등록되었습니다! 이제 기획서를 만들고 스튜디오로 이동할까요?`,
+              options: ['🚀 Gemini 4로 기획서 생성하고 스튜디오 열기'],
             },
           ]);
         }
@@ -214,9 +212,9 @@ export function TerminalChatPlanner({
           {
             id: generateMsgId('m-agent'),
             role: 'agent',
-            text: `참가 혜택이나 행사 로고 파일이 있다면 알려주시고, 준비되셨다면 바로 Gemini 4로 기획서와 브랜드 킷을 생성해 보세요!`,
+            text: `참가 혜택이나 행사 로고 파일이 있다면 알려주시고, 입력이 끝나면 Gemini 4가 기획서를 구조화해 스튜디오로 넘겨드립니다.`,
             options: [
-              '🚀 Gemini 4에게 기획서 & 브랜드 킷 생성 요청하기',
+              '🚀 Gemini 4로 기획서 생성하고 스튜디오 열기',
               '참가 혜택: 리미티드 굿즈, 간식 및 음료, Cloud 크레딧 추가',
               '📁 행사 로고 파일 첨부하기',
             ],
@@ -224,83 +222,71 @@ export function TerminalChatPlanner({
         ]);
       }, 300);
     } else {
-      // 5단계 이후에 추가 텍스트를 입력하면 바로 Gemini 4에 반영하여 기획서 & 브랜드 킷 갱신
+      // 마지막 질문까지 답하면 대화 전체를 Gemini 4 구조화 출력으로 기획서화
       await handleGeneratePlan(newMessages);
     }
   };
+
+  const STUDIO_HANDOFF_DELAY_MS = 900;
 
   const handleGeneratePlan = async (overrideMessages?: Message[]) => {
     const activeMessages = overrideMessages ?? messages;
     setIsSubmitting(true);
     setThoughtStatus(
-      'Thought for 1.8s (Gemini 4: 대화 내용을 분석하여 기본 행사 정보(EventPlan) 구조화 중...)',
+      'Gemini 4: 대화 내용을 EventPlan 구조화 출력(JSON Schema)으로 변환 중...',
     );
 
     try {
-      const apiPayload = {
-        messages: activeMessages
-          .filter((m) => m.role === 'user' || m.role === 'agent')
-          .map((m) => ({
-            role: m.role === 'user' ? 'user' : 'assistant',
-            content: m.text,
-          })),
-        attachedAssets,
-      };
-
       const res = await fetch('/api/plan/from-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(apiPayload),
+        body: JSON.stringify({
+          messages: activeMessages
+            .filter((m) => m.role === 'user' || m.role === 'agent')
+            .map((m) => ({
+              role: m.role === 'user' ? 'user' : 'assistant',
+              content: m.text,
+            })),
+          attachedAssets,
+        }),
       });
-
       const data = await res.json();
-
-      if (data.success && data.plan) {
-        const createdPlan: EventPlan = data.plan;
-        onPlanComplete(createdPlan);
-
-        setThoughtStatus(
-          'Thought for 2.1s (Gemini 4 BK-03: 썸네일·카드뉴스·릴스·SNS 브랜드 킷 생성 중...)',
-        );
-
-        let generatedKit: Generated | null = null;
-        try {
-          const genRes = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ plan: createdPlan }),
-          });
-          const genData = await genRes.json();
-          if (genData.success && genData.generated) {
-            generatedKit = genData.generated;
-            onGeneratedComplete?.(genData.generated);
-          }
-        } catch {
-          // ignore and keep existing or fallback
-        }
-
-        setThoughtStatus(null);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: generateMsgId('m-done'),
-            role: 'system',
-            text: `✔ Ran (POST /api/plan/from-chat & POST /api/generate [Gemini 4]) -> 200 OK\n\n[기본 행사 정보 반영 완료]\n• 주최: ${createdPlan.hostName} (팀: 귀찮앙)\n• 행사명: ${createdPlan.title}\n• 일시: ${createdPlan.date} (${createdPlan.startTime}${createdPlan.endTime ? `~${createdPlan.endTime}` : ''})\n• 장소: ${createdPlan.venue}\n• 세션 수: ${createdPlan.schedule?.length ?? 0}개 / 연사: ${createdPlan.speakers?.length ?? 0}명\n• 브랜드 킷(BK-03): 카드뉴스 ${generatedKit?.cards.length ?? 7}장 · 릴스 ${generatedKit?.reel.scenes.length ?? 3}씬 · SNS 캡션 생성 완료!\n\n추가로 수정하고 싶은 내용을 터미널에 입력하시면 실시간으로 다시 반영됩니다.`,
-          },
-        ]);
-      } else {
+      if (!data.success || !data.plan) {
         throw new Error(data.error?.message || '기획서 생성 실패');
       }
-    } catch {
+
+      const parsed = EventPlanSchema.safeParse(data.plan);
+      if (!parsed.success) {
+        throw new Error('Gemini 응답이 EventPlan 스키마와 맞지 않습니다.');
+      }
+      const createdPlan = parsed.data;
+      const sourceLabel =
+        data.source === 'gemini' ? 'Gemini 4 구조화 출력' : '대화 내용 직접 추출';
+
       setThoughtStatus(null);
-      onPlanComplete(samplePlan);
-      onGeneratedComplete?.(sampleGenerated);
       setMessages((prev) => [
         ...prev,
         {
-          id: generateMsgId('m-fallback'),
+          id: generateMsgId('m-done'),
           role: 'system',
-          text: `● Gemini 4 기획서 & 브랜드 킷 반영 완료\n우측 패널에서 기본 행사 정보와 생성된 에셋을 확인하세요.`,
+          text: `✔ POST /api/plan/from-chat -> 200 OK (${sourceLabel})\n\n[기획서 구조화 완료]\n• 행사명: ${createdPlan.title}\n• 일시: ${createdPlan.date} (${createdPlan.startTime}${createdPlan.endTime ? `~${createdPlan.endTime}` : ''})\n• 장소: ${createdPlan.venue}\n• 세션 ${createdPlan.schedule.length}개 / 연사 ${createdPlan.speakers.length}명\n\n스튜디오로 이동해 기획서 폼에 채우고 브랜드 킷을 생성합니다...`,
+        },
+      ]);
+      setTimeout(() => onPlanComplete(createdPlan), STUDIO_HANDOFF_DELAY_MS);
+    } catch (err) {
+      setThoughtStatus(null);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateMsgId('m-error'),
+          role: 'system',
+          text: `✖ 기획서 생성 실패: ${err instanceof Error ? err.message : String(err)}\n잠시 후 다시 시도해 주세요.`,
+        },
+        {
+          id: generateMsgId('m-agent'),
+          role: 'agent',
+          text: '다시 시도할까요?',
+          options: ['🚀 Gemini 4로 기획서 생성하고 스튜디오 열기'],
         },
       ]);
     } finally {
@@ -308,44 +294,23 @@ export function TerminalChatPlanner({
     }
   };
 
-  const handleCompleteWithSample = async (currentMsgs: Message[]) => {
-    setIsSubmitting(true);
-    setThoughtStatus('Thought for 1.5s (Gemini 4: 샘플 기획서 및 브랜드 킷 생성 중...)');
-    onPlanComplete(samplePlan);
-
-    try {
-      const genRes = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: samplePlan }),
-      });
-      const genData = await genRes.json();
-      if (genData.success && genData.generated) {
-        onGeneratedComplete?.(genData.generated);
-      } else {
-        onGeneratedComplete?.(sampleGenerated);
-      }
-    } catch {
-      onGeneratedComplete?.(sampleGenerated);
-    }
-
-    setThoughtStatus(null);
+  const handleCompleteWithSample = (currentMsgs: Message[]) => {
     setMessages([
       ...currentMsgs,
       {
         id: generateMsgId('m-sample'),
         role: 'system',
-        text: `✔ GDG 2026 Build with AI 기획서 및 브랜드 킷(BK-03) 생성이 완료되었습니다.\n아래 기본 행사 정보와 우측 프리뷰 탭에서 결과를 확인하세요!`,
+        text: `✔ 샘플 기획서(${samplePlan.title})를 불러왔습니다.\n스튜디오로 이동해 브랜드 킷을 생성합니다...`,
       },
     ]);
-    setIsSubmitting(false);
+    setTimeout(() => onPlanComplete(samplePlan), STUDIO_HANDOFF_DELAY_MS);
   };
 
   return (
     <div className="flex flex-col w-full">
       {/* Terminal Window Container */}
       <div
-        className="w-full rounded-2xl shadow-xl border border-slate-700 overflow-hidden flex flex-col h-[520px] font-mono text-xs sm:text-sm"
+        className="w-full rounded-2xl shadow-xl border border-slate-700 overflow-hidden flex flex-col h-[calc(100vh-9rem)] min-h-[520px] font-mono text-xs sm:text-sm"
         style={{ backgroundColor: color.ink, color: color.white }}
       >
         {/* macOS Chrome Title Bar */}
@@ -507,7 +472,7 @@ export function TerminalChatPlanner({
               onChange={(e) => setInput(e.target.value)}
               placeholder={
                 isSubmitting
-                  ? 'Gemini 4가 기획서와 브랜드 킷을 생성 중입니다...'
+                  ? 'Gemini 4가 기획서를 구조화하는 중입니다...'
                   : '행사 정보 입력 (엔터 전송)'
               }
               className="flex-1 bg-transparent border-none text-white focus:outline-none font-mono text-xs sm:text-sm placeholder:text-white/30"
@@ -532,7 +497,7 @@ export function TerminalChatPlanner({
               className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 shrink-0 disabled:opacity-40"
               style={{ backgroundColor: color.blue }}
             >
-              ⚡ Gemini 4 반영
+              ⚡ 지금 기획서 생성
             </button>
             <button
               type="submit"
@@ -544,7 +509,7 @@ export function TerminalChatPlanner({
           </form>
 
           <div className="flex items-center justify-between text-[11px] text-white/40 px-1 pt-0.5">
-            <span>터미널 대화 내용이 기본 행사 정보 및 브랜드 킷에 즉시 반영됩니다.</span>
+            <span>입력을 마치면 Gemini 4 구조화 출력으로 기획서가 만들어집니다.</span>
             <span className="font-mono">Gemini 4 · 귀찮앙</span>
           </div>
         </div>

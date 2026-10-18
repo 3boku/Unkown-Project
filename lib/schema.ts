@@ -83,9 +83,7 @@ export const EventPlanSchema = z.object({
     platform: 'EVENTUS',
     url: '',
   }),
-  registrationUrl: z
-    .string()
-    .default(''),
+  registrationUrl: z.string().optional(),
   schedule: z.array(ScheduleItemSchema).default([]),
   speakers: z.array(SpeakerSchema).default([]),
   specialEvents: z.array(SpecialEventSchema).default([]),

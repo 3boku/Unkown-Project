@@ -77,7 +77,7 @@ export async function POST(req: Request) {
         systemInstruction,
         config: {
           responseMimeType: 'application/json',
-          responseSchema: z.toJSONSchema(EventPlanSchema),
+          responseJsonSchema: z.toJSONSchema(EventPlanSchema),
           temperature: 0.2,
         },
       });
@@ -97,6 +97,7 @@ export async function POST(req: Request) {
     }
 
     // 대화 내용을 기반으로 사용자가 직접 입력한 항목들을 추출하여 보강/폴백
+    const source: 'gemini' | 'chat-extract' = generatedPlan ? 'gemini' : 'chat-extract';
     const extractedFromChat = extractPlanFromChatMessages(messages);
     if (!generatedPlan) {
       generatedPlan = extractedFromChat;
@@ -122,6 +123,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       plan: generatedPlan,
+      source,
     });
   } catch (error) {
     const message =
