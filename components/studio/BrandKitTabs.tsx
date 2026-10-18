@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { CardNewsPreview } from '@/components/CardNewsPreview';
 import ArgonReelsStudio from '@/components/reels/ArgonReelsStudio';
 import { SnsStudioTab } from '@/components/sns/SnsStudioTab';
-import { ThumbnailPreview } from '@/components/studio/ThumbnailPreview';
+import { ThumbnailPreview } from '@/components/ThumbnailPreview';
 import { type EventPlan, type Generated, type Reel } from '@/lib/schema';
 import { color } from '@/lib/tokens';
 
