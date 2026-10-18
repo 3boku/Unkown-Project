@@ -2,7 +2,7 @@
   "theme": "BUILD_WITH_AI",
   "year": "2026",
   "title": "Build with AI Hands-on Campus",
-  "hostName": "GDG Campus Korea",
+  "hostName": "GDG",
   "hook": "AI로 어디까지 만들 수 있을까?",
   "description": "Gemini와 Google Cloud AI 도구를 직접 손으로 다뤄보며 나만의 AI 에이전트와 프로덕트를 완성하는 캠퍼스 핸즈온 행사입니다.",
   "date": "2026-05-09",
@@ -15,9 +15,10 @@
   "perks": ["리미티드 굿즈", "간식 및 음료", "Google Cloud 크레딧"],
   "registration": {
     "platform": "EVENTUS",
-    "url": "https://event-us.kr/gdgcampuskorea/event/2026-build-with-ai",
+    "url": "https://event-us.kr/gdg/event/2026-build-with-ai",
     "deadline": "2026-05-06"
   },
+  "registrationUrl": "https://event-us.kr/gdg/event/2026-build-with-ai",
   "schedule": [
     {
       "start": "12:30",
@@ -72,7 +73,7 @@
     },
     {
       "name": "박서연",
-      "affiliation": "GDG Campus Korea Organizer",
+      "affiliation": "GDG Organizer",
       "sessionTitle": "Next.js와 Cloud Run으로 30분 만에 AI 웹 서비스 배포하기",
       "summary": "로컬에서 만든 Gemini 웹 앱을 컨테이너 설정 없이 서울 리전 Cloud Run에 배포하는 전 과정을 실습합니다.",
       "kind": "HANDS_ON"
@@ -109,5 +110,5 @@
       "desc": "연사자 및 현업 개발자와 자유롭게 질문하고 피드백을 나눌 수 있는 라운지를 운영합니다."
     }
   ],
-  "sponsors": ["Google Developers", "GDG Campus Korea"]
+  "sponsors": ["Google Developers", "GDG"]
 }

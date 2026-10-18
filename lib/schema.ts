@@ -47,6 +47,20 @@ export const SpecialEventSchema = z.object({
 });
 export type SpecialEvent = z.infer<typeof SpecialEventSchema>;
 
+export const SponsorLogoSchema = z.object({
+  name: z.string(),
+  logoUrl: z.string(),
+});
+export type SponsorLogo = z.infer<typeof SponsorLogoSchema>;
+
+export const DesignAssetsSchema = z.object({
+  logoUrl: z.string().optional(),
+  keyVisualUrl: z.string().optional(),
+  sponsorLogos: z.array(SponsorLogoSchema).default([]),
+  extraAssets: z.array(z.string()).default([]),
+});
+export type DesignAssets = z.infer<typeof DesignAssetsSchema>;
+
 /**
  * 5.1 EventPlan — 웹 폼으로 입력·수정하는 기획서 스키마
  */
@@ -54,7 +68,7 @@ export const EventPlanSchema = z.object({
   theme: ThemeSchema,
   year: z.string().min(1),
   title: z.string().min(1),
-  hostName: z.string().default('GDG Campus Korea'),
+  hostName: z.string().default('GDG'),
   hook: z.string().default(''),
   description: z.string().default(''),
   date: z.string().min(1),
@@ -69,10 +83,15 @@ export const EventPlanSchema = z.object({
     platform: 'EVENTUS',
     url: '',
   }),
+  registrationUrl: z.string().optional(),
   schedule: z.array(ScheduleItemSchema).default([]),
   speakers: z.array(SpeakerSchema).default([]),
   specialEvents: z.array(SpecialEventSchema).default([]),
   sponsors: z.array(z.string()).default([]),
+  designAssets: DesignAssetsSchema.default({
+    sponsorLogos: [],
+    extraAssets: [],
+  }),
 });
 export type EventPlan = z.infer<typeof EventPlanSchema>;
 
@@ -92,7 +111,9 @@ export const ThumbnailSchema = z.object({
   subline: z.string(),
   style: AssetStyleSchema,
 });
+export const ThumbnailCopySchema = ThumbnailSchema;
 export type Thumbnail = z.infer<typeof ThumbnailSchema>;
+export type ThumbnailCopy = Thumbnail;
 
 export const IntroSectionSchema = z.object({
   label: z.string(),
@@ -164,23 +185,96 @@ export const ReelComponentSchema = z.enum([
 ]);
 export type ReelComponent = z.infer<typeof ReelComponentSchema>;
 
+export const SafeZoneSchema = z.enum([
+  'CENTER_SAFE',
+  'TOP_THIRD_SAFE',
+  'SPLIT_BENTO_SAFE',
+]);
+export type SafeZone = z.infer<typeof SafeZoneSchema>;
+
+export const VeoScenePromptSchema = z.object({
+  cameraAngle: z.string(),
+  cameraMove: z.string(),
+  lensMm: z.number(),
+  lighting: z.string(),
+  sfxCue: z.string(),
+  compiledPrompt: z.string(),
+  seed: z.number().int(),
+});
+export type VeoScenePrompt = z.infer<typeof VeoScenePromptSchema>;
+
+export const SecondBeatSchema = z.object({
+  secondOffset: z.number(),
+  visualAction: z.string(),
+  highlightWord: z.string(),
+  accent: BrandColorSchema,
+  sfxCue: z.string(),
+});
+export type SecondBeat = z.infer<typeof SecondBeatSchema>;
+
+export const ViralDnaProfileSchema = z.object({
+  analyzedReelCount: z.number().int(),
+  firstFrameShockMs: z.number(),
+  avgCutDurationSec: z.number(),
+  targetBpm: z.number(),
+  hookFormula: z.string(),
+  retentionTriggers: z.array(z.string()),
+});
+export type ViralDnaProfile = z.infer<typeof ViralDnaProfileSchema>;
+
+export const VerificationRubricItemSchema = z.object({
+  score: z.number(),
+  passed: z.boolean(),
+  note: z.string(),
+});
+export type VerificationRubricItem = z.infer<typeof VerificationRubricItemSchema>;
+
+export const VerificationRubricSchema = z.object({
+  hookImpact1_5s: VerificationRubricItemSchema,
+  safeZoneLegibility: VerificationRubricItemSchema,
+  physicsIntegrity: VerificationRubricItemSchema,
+  cutRhythmSync: VerificationRubricItemSchema,
+});
+export type VerificationRubric = z.infer<typeof VerificationRubricSchema>;
+
+export const VerificationIterationSchema = z.object({
+  iteration: z.number().int(),
+  overallScore: z.number(),
+  passed: z.boolean(),
+  rubric: VerificationRubricSchema,
+  issues: z.array(z.string()),
+  appliedFix: z.string().optional(),
+});
+export type VerificationIteration = z.infer<typeof VerificationIterationSchema>;
+
 export const ReelSceneSchema = z.object({
   component: ReelComponentSchema,
   durationSec: z.number(),
   overlayText: z.string(),
   highlightWords: z.array(z.string()),
+  accent: BrandColorSchema.optional(),
+  safeZone: SafeZoneSchema.optional(),
+  backgroundVideoUrl: z.string().optional(),
+  veoPrompt: VeoScenePromptSchema.optional(),
+  secondBeats: z.array(SecondBeatSchema).optional(),
 });
 export type ReelScene = z.infer<typeof ReelSceneSchema>;
 
 export const ReelSchema = z.object({
   scenes: z.array(ReelSceneSchema).min(1),
+  directorRationale: z.string().optional(),
+  viralDna: ViralDnaProfileSchema.optional(),
+  verificationLoop: z.array(VerificationIterationSchema).optional(),
 });
 export type Reel = z.infer<typeof ReelSchema>;
 
 export const SnsSchema = z.object({
-  instagramCaption: z.string(),
-  threadsMain: z.string(),
+  instagramCaption: z.string().default(''),
+  threadsMain: z.string().default(''),
   threadsReply: z.string(),
+  instagram: z.string().default(''),
+  hashtags: z.array(z.string()).default([]),
+  threads: z.string().default(''),
 });
 export type Sns = z.infer<typeof SnsSchema>;
 
@@ -191,3 +285,4 @@ export const GeneratedSchema = z.object({
   sns: SnsSchema,
 });
 export type Generated = z.infer<typeof GeneratedSchema>;
+

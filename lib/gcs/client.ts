@@ -13,7 +13,7 @@ export function getDefaultBucketName(bucketOverride?: string): string {
   if (!bucket) {
     throw new GcsError(
       "CONFIG_ERROR",
-      "GCS_BUCKET_NAME 환경변수가 설정되지 않았습니다. .env 파일에 GCS_BUCKET_NAME을 설정해 주세요.",
+      "GCS_BUCKET_NAME 환경변수가 설정되지 않았습니다. .env.local 또는 Cloud Run 환경변수에 GCS_BUCKET_NAME을 설정해 주세요.",
       500
     );
   }
@@ -24,10 +24,11 @@ export function getDefaultBucketName(bucketOverride?: string): string {
 /**
  * Initializes and returns a singleton Google Cloud Storage client.
  *
- * Authentication priority:
- * 1. Inline Service Account env vars (`GCP_CLIENT_EMAIL` + `GCP_PRIVATE_KEY`)
- * 2. Key file path (`GOOGLE_APPLICATION_CREDENTIALS`)
- * 3. Application Default Credentials (`gcloud auth application-default login`)
+ * Default behavior uses Application Default Credentials (ADC):
+ * - Local dev: `gcloud auth application-default login`
+ * - Cloud Run: Attached Service Account (`--service-account=unn@kr-devsummit26icn-504.iam.gserviceaccount.com`)
+ *
+ * Also supports optional explicit keyFilename or inline credentials if provided.
  */
 export function getGcsClient(): Storage {
   if (cachedStorage) {
@@ -38,6 +39,12 @@ export function getGcsClient(): Storage {
   const clientEmail = process.env.GCP_CLIENT_EMAIL?.trim();
   const privateKeyRaw = process.env.GCP_PRIVATE_KEY?.trim();
   const keyFilename = process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+
+  // .env.local에 GOOGLE_APPLICATION_CREDENTIALS="" 처럼 빈 문자열이 들어가 있을 때
+  // google-auth-library가 빈 파일 경로로 오인하지 않고 ADC(gcloud / Cloud Run 서비스 계정)를 쓰도록 정리합니다.
+  if (!keyFilename && "GOOGLE_APPLICATION_CREDENTIALS" in process.env) {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  }
 
   const options: StorageOptions = {};
 

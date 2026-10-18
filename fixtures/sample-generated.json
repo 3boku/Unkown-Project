@@ -94,30 +94,211 @@
     }
   ],
   "reel": {
+    "directorRationale": "최근 바이럴된 테크 컨퍼런스 릴스 36편을 1M 멀티모달 컨텍스트로 역공학하여, 첫 1,150ms 내 고속 돌리 줌(1.5x)과 질문형 스톰프 훅으로 이탈을 차단하고, 6초 벤토 그리드로 핵심 팩트(일시·장소·9개 핸즈온)를 압축 전달한 뒤, 마지막 5초에 선착순 200명 마감 임박 CTA로 전환율을 극대화했습니다.",
+    "viralDna": {
+      "analyzedReelCount": 36,
+      "firstFrameShockMs": 1150,
+      "avgCutDurationSec": 5.3,
+      "targetBpm": 128,
+      "hookFormula": "0~1.2s 고속 돌리 줌 + 대비 질문형 스톰프 훅 → 팩트 벤토 그리드 → 정원 마감 카운트다운 CTA",
+      "retentionTriggers": [
+        "첫 1.15초 내 질문형 타이틀 + 브랜드 4색 스톰프 뱃지 동시 타격",
+        "128 BPM 서브 베이스 드롭과 단어 하이라이트 프레임 단위 싱크",
+        "인스타그램 릴스 하단 UI(420px) 침범 없는 세이프존 중앙 정렬"
+      ]
+    },
+    "verificationLoop": [
+      {
+        "iteration": 1,
+        "overallScore": 72,
+        "passed": false,
+        "rubric": {
+          "hookImpact1_5s": {
+            "score": 68,
+            "passed": false,
+            "note": "첫 1.5초 정적 아이레벨 구도로 인해 초기 시선 고정력 부족"
+          },
+          "safeZoneLegibility": {
+            "score": 64,
+            "passed": false,
+            "note": "Scene 3 하단 CTA 문구가 인스타그램 캡션 영역(하단 420px)과 일부 겹침"
+          },
+          "physicsIntegrity": {
+            "score": 92,
+            "passed": true,
+            "note": "손가락 왜곡 및 비정상 물리 모션 없음 (순수 3D 기하 오브젝트 사용)"
+          },
+          "cutRhythmSync": {
+            "score": 76,
+            "passed": false,
+            "note": "Scene 1→2 전환 구간의 오디오 후시(Whoosh) 싱크가 220ms 지연됨"
+          }
+        },
+        "issues": [
+          "0.0~1.5s 구간 카메라 무빙 속도 부족으로 초기 후킹 점수 미달 (68/100)",
+          "Scene 3 오버레이 영역이 하단 세이프존 경계를 침범함"
+        ],
+        "appliedFix": "Scene 1 카메라를 LOW_ANGLE_HERO + DOLLY_ZOOM_1_5X(24mm)로 재설정하고 Seed를 428501로 갱신, 전 씬 레이아웃을 CENTER_SAFE/SPLIT_BENTO_SAFE로 보정"
+      },
+      {
+        "iteration": 2,
+        "overallScore": 95,
+        "passed": true,
+        "rubric": {
+          "hookImpact1_5s": {
+            "score": 96,
+            "passed": true,
+            "note": "첫 1.15초 내 1.5배속 돌리 줌 + 'AI' 블루 스톰프 타격으로 시선 고정 확인"
+          },
+          "safeZoneLegibility": {
+            "score": 94,
+            "passed": true,
+            "note": "상단 220px·하단 420px 세이프존 내부에 모든 한글 타이포그래피 100% 배치"
+          },
+          "physicsIntegrity": {
+            "score": 97,
+            "passed": true,
+            "note": "렌더링 아티팩트·텍스트 깨짐·손가락 왜곡 0건"
+          },
+          "cutRhythmSync": {
+            "score": 93,
+            "passed": true,
+            "note": "128 BPM 비트와 1초 단위 하이라이트 모션 싱크 일치"
+          }
+        },
+        "issues": [],
+        "appliedFix": "검증 기준(85점 이상) 통과 — 최종 릴스 마스터 승인 완료"
+      }
+    ],
     "scenes": [
       {
         "component": "KineticStompText",
         "durationSec": 5,
         "overlayText": "AI로 어디까지 만들 수 있을까? 2026 Build with AI Hands-on Campus",
-        "highlightWords": ["AI", "Build", "Campus"]
+        "highlightWords": ["AI", "Build", "Campus"],
+        "accent": "blue",
+        "safeZone": "CENTER_SAFE",
+        "veoPrompt": {
+          "cameraAngle": "LOW_ANGLE_HERO",
+          "cameraMove": "DOLLY_ZOOM_1_5X",
+          "lensMm": 24,
+          "lighting": "CLEAN_HIGH_KEY_PAPER",
+          "sfxCue": "SUB_BASS_DROP + WHOOSH_SNAP",
+          "compiledPrompt": "Vertical 9:16 cinematic 3D motion background, low-angle hero camera executing a 1.5x fast dolly zoom into floating geometric glass nodes in Google blue, red, yellow, and green over a clean studio paper backdrop, crisp volumetric rim lighting, zero text or letters, 60fps.",
+          "seed": 428501
+        },
+        "secondBeats": [
+          {
+            "secondOffset": 0,
+            "visualAction": "24mm 고속 돌리 줌 진입 + 첫 프레임 스톰프 쇼크",
+            "highlightWord": "AI",
+            "accent": "blue",
+            "sfxCue": "SUB_BASS_DROP"
+          },
+          {
+            "secondOffset": 2,
+            "visualAction": "더치 틸트 반전 + 메인 타이틀 연쇄 바운스",
+            "highlightWord": "Build",
+            "accent": "red",
+            "sfxCue": "WHOOSH_SNAP"
+          },
+          {
+            "secondOffset": 4,
+            "visualAction": "캠퍼스 엠블럼 줌아웃 + 다음 씬 트랜지션 스윕",
+            "highlightWord": "Campus",
+            "accent": "yellow",
+            "sfxCue": "RISER_SWEEP"
+          }
+        ]
       },
       {
         "component": "BentoGridShowcase",
         "durationSec": 6,
         "overlayText": "2026.05.09 서강대학교 정하상관 · 총 9개의 Hands-on과 3개의 Session",
-        "highlightWords": ["2026.05.09", "Hands-on", "Session"]
+        "highlightWords": ["2026.05.09", "Hands-on", "Session"],
+        "accent": "green",
+        "safeZone": "SPLIT_BENTO_SAFE",
+        "veoPrompt": {
+          "cameraAngle": "TOP_DOWN_ARCHITECTURAL",
+          "cameraMove": "ORBIT_360_SMOOTH",
+          "lensMm": 35,
+          "lighting": "SOFT_STUDIO_DIFFUSED",
+          "sfxCue": "MECHANICAL_CLICK_GRID",
+          "compiledPrompt": "Vertical 9:16 clean architectural motion canvas, smooth orbital camera gliding over modular translucent bento surfaces with subtle green and blue edge glow, soft studio daylight diffusion, no text or watermarks, 60fps.",
+          "seed": 340853
+        },
+        "secondBeats": [
+          {
+            "secondOffset": 5,
+            "visualAction": "벤토 카드 #1 (일시·장소 팩트) 스프링 팝인",
+            "highlightWord": "2026.05.09",
+            "accent": "blue",
+            "sfxCue": "MECHANICAL_CLICK"
+          },
+          {
+            "secondOffset": 7,
+            "visualAction": "벤토 카드 #2~#3 (9개 Hands-on · 5명 연사 라인업) 순차 전개",
+            "highlightWord": "Hands-on",
+            "accent": "green",
+            "sfxCue": "MECHANICAL_CLICK"
+          },
+          {
+            "secondOffset": 9,
+            "visualAction": "벤토 카드 #4 (참가자 혜택 4종) 하이라이트 펄스",
+            "highlightWord": "Session",
+            "accent": "yellow",
+            "sfxCue": "DIGITAL_CHIME"
+          }
+        ]
       },
       {
         "component": "KineticStompText",
         "durationSec": 5,
         "overlayText": "선착순 200명 모집 지금 프로필 링크에서 신청하세요!",
-        "highlightWords": ["200명", "프로필", "신청하세요!"]
+        "highlightWords": ["200명", "프로필", "신청하세요!"],
+        "accent": "red",
+        "safeZone": "CENTER_SAFE",
+        "veoPrompt": {
+          "cameraAngle": "DUTCH_TILT_DYNAMIC",
+          "cameraMove": "WHIP_PAN_TO_LOCK",
+          "lensMm": 50,
+          "lighting": "BOLD_ACCENT_SPOT",
+          "sfxCue": "RISER_SWEEP + IMPACT_CHIME",
+          "compiledPrompt": "Vertical 9:16 energetic climax background, dynamic whip pan locking onto a glowing central portal frame accented with vibrant red and blue light trails on crisp paper surface, zero text, 60fps.",
+          "seed": 234335
+        },
+        "secondBeats": [
+          {
+            "secondOffset": 11,
+            "visualAction": "휩 팬 스톱 + '200명' 정원 강조 스톰프",
+            "highlightWord": "200명",
+            "accent": "red",
+            "sfxCue": "WHOOSH_SNAP"
+          },
+          {
+            "secondOffset": 13,
+            "visualAction": "프로필 링크 유도 포커스 줌인",
+            "highlightWord": "프로필",
+            "accent": "blue",
+            "sfxCue": "DIGITAL_CHIME"
+          },
+          {
+            "secondOffset": 15,
+            "visualAction": "최종 CTA 락업 홀드 + 잔향 피니시",
+            "highlightWord": "신청하세요!",
+            "accent": "green",
+            "sfxCue": "SUB_BASS_DROP"
+          }
+        ]
       }
     ]
   },
   "sns": {
-    "instagramCaption": "AI로 어디까지 만들 수 있을까?\n\n혼자 문서만 보며 막막했던 AI 서비스 개발,\n직접 코드를 치며 질문할 수 있는 핸즈온이 필요하셨나요?\n\nGDG Campus Korea가 준비한 2026 Build with AI Hands-on Campus에서\nGemini와 Google Cloud를 활용한 나만의 AI 프로덕트를 완성해 보세요!\n\n📌 상세 타임테이블과 최신 연사자 정보는 프로필 링크에서 확인해주세요\n\n🔥 프로그램 구성\n- 총 9개의 Hands-on과 3개의 Session\n- Gemini Structured Outputs, Next.js + Cloud Run 배포, 멀티모달 RAG 실습\n- 주니어 개발자를 위한 AI 페어 프로그래밍 및 서버리스 아키텍처 세션\n\n🛠️ 행사 특징\n- 일시: 2026-05-09 (12:30 ~ 17:30)\n- 장소: 서강대학교 정하상관\n- 대상: 대학생, 취업 준비생, 주니어 개발자 (정원 200명)\n- 혜택: 리미티드 굿즈, 간식 및 음료, Google Cloud 크레딧, 스탬프 투어 & 1:1 멘토링\n\n#GDG #GDGCampusKorea #BuildWithAI #Gemini #GoogleCloud #개발자행사 #핸즈온 #대학생개발자",
+    "instagramCaption": "AI로 어디까지 만들 수 있을까?\n\n혼자 문서만 보며 막막했던 AI 서비스 개발,\n직접 코드를 치며 질문할 수 있는 핸즈온이 필요하셨나요?\n\nGDG가 준비한 2026 Build with AI Hands-on Campus에서\nGemini와 Google Cloud를 활용한 나만의 AI 프로덕트를 완성해 보세요!\n\n📌 상세 타임테이블과 최신 연사자 정보는 프로필 링크에서 확인해주세요\n\n🔥 프로그램 구성\n- 총 9개의 Hands-on과 3개의 Session\n- Gemini Structured Outputs, Next.js + Cloud Run 배포, 멀티모달 RAG 실습\n- 주니어 개발자를 위한 AI 페어 프로그래밍 및 서버리스 아키텍처 세션\n\n🛠️ 행사 특징\n- 일시: 2026-05-09 (12:30 ~ 17:30)\n- 장소: 서강대학교 정하상관\n- 대상: 대학생, 취업 준비생, 주니어 개발자 (정원 200명)\n- 혜택: 리미티드 굿즈, 간식 및 음료, Google Cloud 크레딧, 스탬프 투어 & 1:1 멘토링\n\n#GDG #BuildWithAI #Gemini #GoogleCloud #개발자행사 #핸즈온 #대학생개발자",
     "threadsMain": "AI로 어디까지 만들 수 있을까? 🤔\n\n2026 Build with AI Hands-on Campus 참가자를 모집합니다!\n\n📅 2026-05-09 (12:30 ~ 17:30)\n📍 서강대학교 정하상관\n💻 총 9개의 Hands-on과 3개의 Session\n🎁 리미티드 굿즈 · 간식 및 음료 · Google Cloud 크레딧 제공\n\nGemini와 Cloud Run을 직접 실습하고 현업 개발자 멘토링까지 한 번에 경험해 보세요!",
-    "threadsReply": "👉 참가 신청 바로가기 (선착순 200명, ~2026-05-06 마감)\nhttps://event-us.kr/gdgcampuskorea/event/2026-build-with-ai"
+    "threadsReply": "👉 참가 신청 바로가기 (선착순 200명, ~2026-05-06 마감)\nhttps://event-us.kr/gdg/event/2026-build-with-ai",
+    "instagram": "AI로 어디까지 만들 수 있을까?\n\n혼자 문서만 보며 막막했던 AI 서비스 개발,\n직접 코드를 치며 질문할 수 있는 핸즈온이 필요하셨나요?\n\nGDG가 준비한 2026 Build with AI Hands-on Campus에서\nGemini와 Google Cloud를 활용한 나만의 AI 프로덕트를 완성해 보세요!\n\n📌 상세 타임테이블과 최신 연사자 정보는 프로필 링크에서 확인해주세요\n\n🔥 프로그램 구성\n- 총 9개의 Hands-on과 3개의 Session\n- Gemini Structured Outputs, Next.js + Cloud Run 배포, 멀티모달 RAG 실습\n- 주니어 개발자를 위한 AI 페어 프로그래밍 및 서버리스 아키텍처 세션\n\n🛠️ 행사 특징\n- 일시: 2026-05-09 (12:30 ~ 17:30)\n- 장소: 서강대학교 정하상관\n- 대상: 대학생, 취업 준비생, 주니어 개발자 (정원 200명)\n- 혜택: 리미티드 굿즈, 간식 및 음료, Google Cloud 크레딧, 스탬프 투어 & 1:1 멘토링",
+    "hashtags": ["#GDG", "#BuildWithAI", "#Gemini", "#GoogleCloud", "#개발자행사", "#핸즈온", "#대학생개발자"],
+    "threads": "AI로 어디까지 만들 수 있을까? 🤔\n\n2026 Build with AI Hands-on Campus 참가자를 모집합니다!\n\n📅 2026-05-09 (12:30 ~ 17:30)\n📍 서강대학교 정하상관\n💻 총 9개의 Hands-on과 3개의 Session\n🎁 리미티드 굿즈 · 간식 및 음료 · Google Cloud 크레딧 제공\n\nGemini와 Cloud Run을 직접 실습하고 현업 개발자 멘토링까지 한 번에 경험해 보세요!"
   }
 }
