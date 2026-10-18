@@ -1,12 +1,20 @@
+'use client';
+
+import React, { useState } from 'react';
 import { CardNewsPreview } from '@/components/CardNewsPreview';
+import { ThumbnailPreview } from '@/components/ThumbnailPreview';
 import sampleGeneratedRaw from '@/fixtures/sample-generated.json';
 import samplePlanRaw from '@/fixtures/sample-plan.json';
 import { EventPlanSchema, GeneratedSchema } from '@/lib/schema';
 import { color } from '@/lib/tokens';
 
+const samplePlan = EventPlanSchema.parse(samplePlanRaw);
+const sampleGenerated = GeneratedSchema.parse(sampleGeneratedRaw);
+
+type ActiveTab = 'thumbnail' | 'card';
+
 export default function Home() {
-  const samplePlan = EventPlanSchema.parse(samplePlanRaw);
-  const sampleGenerated = GeneratedSchema.parse(sampleGeneratedRaw);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('thumbnail');
 
   return (
     <div
@@ -83,18 +91,55 @@ export default function Home() {
           className="lg:col-span-7 rounded-2xl p-6 shadow-xs border"
           style={{ backgroundColor: color.white }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold">
-              인스타 카드뉴스 세트 (GDG Campus Korea 포맷)
-            </h2>
+          {/* 에셋 탭 전환 바 */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-4 mb-4 border-b">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('thumbnail')}
+                className="px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer"
+                style={{
+                  backgroundColor:
+                    activeTab === 'thumbnail' ? color.blue : color.paper,
+                  color: activeTab === 'thumbnail' ? color.white : color.ink,
+                  borderColor: color.ink,
+                }}
+              >
+                Tab 1 · 티켓팅 썸네일 2종 (BK-04)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('card')}
+                className="px-4 py-2 rounded-xl text-xs font-bold border transition cursor-pointer"
+                style={{
+                  backgroundColor:
+                    activeTab === 'card' ? color.blue : color.paper,
+                  color: activeTab === 'card' ? color.white : color.ink,
+                  borderColor: color.ink,
+                }}
+              >
+                Tab 2 · 인스타 카드뉴스 세트 (BK-05)
+              </button>
+            </div>
+
             <span className="text-xs font-medium opacity-60">
-              BK-05 · 1080×1350 PNG
+              {activeTab === 'thumbnail'
+                ? 'BK-04 · 1280×720 & 1200×630 PNG'
+                : 'BK-05 · 1080×1350 PNG'}
             </span>
           </div>
-          <CardNewsPreview
-            plan={samplePlan}
-            cards={sampleGenerated.cards}
-          />
+
+          {activeTab === 'thumbnail' ? (
+            <ThumbnailPreview
+              plan={samplePlan}
+              thumbnail={sampleGenerated.thumbnail}
+            />
+          ) : (
+            <CardNewsPreview
+              plan={samplePlan}
+              cards={sampleGenerated.cards}
+            />
+          )}
         </section>
       </main>
     </div>

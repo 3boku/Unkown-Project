@@ -4,13 +4,31 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { renderCardSlidePng } from '../../../../components/templates/CardNewsTemplate.tsx';
 import {
+  renderThumbnailPng,
+  THUMBNAIL_SPECS,
+  type ThumbnailPlatform,
+} from '../../../../components/templates/ThumbnailTemplate.tsx';
+import {
   type CardSlide,
   CardSlideSchema,
   type EventPlan,
   EventPlanSchema,
   GeneratedSchema,
+  type Thumbnail,
+  ThumbnailSchema,
 } from '../../../../lib/schema.ts';
 import { normalizeCardSlidesForPlan } from '../../../../lib/speaker-photo.ts';
+
+const ThumbnailPlatformSchema = z.enum(['EVENTUS', 'TICKETTACO']);
+
+const ThumbnailRenderRequestSchema = z.object({
+  plan: EventPlanSchema,
+  thumbnail: ThumbnailSchema.optional(),
+  platform: ThumbnailPlatformSchema.optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  filename: z.string().optional(),
+});
 
 const CardRenderRequestSchema = z.union([
   z.object({
@@ -28,21 +46,63 @@ const CardRenderRequestSchema = z.union([
   }),
 ]);
 
-function buildSafeFilename(
+function sanitizePngFilename(rawName: string): string {
+  const cleaned = rawName.replace(/[^a-zA-Z0-9._-]/g, '-');
+  return cleaned.endsWith('.png') ? cleaned : `${cleaned}.png`;
+}
+
+function buildSafeCardFilename(
   slide: CardSlide,
   slideIndex?: number,
   customFilename?: string
 ): string {
   if (customFilename) {
-    const cleaned = customFilename.replace(/[^a-zA-Z0-9._-]/g, '-');
-    return cleaned.endsWith('.png') ? cleaned : `${cleaned}.png`;
+    return sanitizePngFilename(customFilename);
   }
   const num = String((slideIndex ?? 0) + 1).padStart(2, '0');
   const typeSlug = slide.type.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   return `gdg-card-${num}-${typeSlug}.png`;
 }
 
-async function toPngHttpResponse(
+function buildSafeThumbnailFilename(
+  platform: ThumbnailPlatform,
+  width: number,
+  height: number,
+  customFilename?: string
+): string {
+  if (customFilename) {
+    return sanitizePngFilename(customFilename);
+  }
+  return `gdg-thumbnail-${platform.toLowerCase()}-${width}x${height}.png`;
+}
+
+function createPngHttpResponse(
+  arrayBuffer: ArrayBuffer,
+  safeFilename: string,
+  isDownload?: boolean
+): Response {
+  const headers = new Headers({
+    'Content-Type': 'image/png',
+    'Content-Length': String(arrayBuffer.byteLength),
+    'Cache-Control': 'no-store',
+  });
+
+  if (isDownload) {
+    headers.set(
+      'Content-Disposition',
+      `attachment; filename="${safeFilename}"`
+    );
+  } else {
+    headers.set('Content-Disposition', `inline; filename="${safeFilename}"`);
+  }
+
+  return new Response(arrayBuffer, {
+    status: 200,
+    headers,
+  });
+}
+
+async function toCardPngHttpResponse(
   plan: EventPlan,
   slide: CardSlide,
   options: {
@@ -58,31 +118,61 @@ async function toPngHttpResponse(
   });
 
   const arrayBuffer = await imageRes.arrayBuffer();
-  const safeFilename = buildSafeFilename(
+  const safeFilename = buildSafeCardFilename(
     slide,
     options.slideIndex,
     options.filename
   );
 
-  const headers = new Headers({
-    'Content-Type': 'image/png',
-    'Content-Length': String(arrayBuffer.byteLength),
-    'Cache-Control': 'no-store',
-  });
+  return createPngHttpResponse(arrayBuffer, safeFilename, options.isDownload);
+}
 
-  if (options.isDownload) {
-    headers.set(
-      'Content-Disposition',
-      `attachment; filename="${safeFilename}"`
-    );
-  } else {
-    headers.set('Content-Disposition', `inline; filename="${safeFilename}"`);
+async function toThumbnailPngHttpResponse(
+  plan: EventPlan,
+  thumbnail: Thumbnail,
+  options: {
+    platform: ThumbnailPlatform;
+    width?: number;
+    height?: number;
+    isDownload?: boolean;
+    filename?: string;
   }
+): Promise<Response> {
+  const spec = THUMBNAIL_SPECS[options.platform] ?? THUMBNAIL_SPECS.EVENTUS;
+  const width = options.width ?? spec.width;
+  const height = options.height ?? spec.height;
 
-  return new Response(arrayBuffer, {
-    status: 200,
-    headers,
+  const imageRes = await renderThumbnailPng(plan, thumbnail, {
+    platform: options.platform,
+    width,
+    height,
   });
+
+  const arrayBuffer = await imageRes.arrayBuffer();
+  const safeFilename = buildSafeThumbnailFilename(
+    options.platform,
+    width,
+    height,
+    options.filename
+  );
+
+  return createPngHttpResponse(arrayBuffer, safeFilename, options.isDownload);
+}
+
+async function parseRequestBody(request: Request): Promise<unknown> {
+  const contentType = (request.headers.get('content-type') || '').toLowerCase();
+  if (
+    contentType.includes('application/x-www-form-urlencoded') ||
+    contentType.includes('multipart/form-data')
+  ) {
+    const formData = await request.formData();
+    const payload = formData.get('payload');
+    if (typeof payload !== 'string' || !payload.trim()) {
+      throw new Error('Missing form payload field.');
+    }
+    return JSON.parse(payload);
+  }
+  return request.json();
 }
 
 export async function POST(
@@ -91,10 +181,10 @@ export async function POST(
 ): Promise<Response> {
   const { kind } = await context.params;
 
-  if (kind !== 'card') {
+  if (kind !== 'card' && kind !== 'thumbnail') {
     return NextResponse.json(
       {
-        error: `Unsupported render kind '${kind}'. Supported kind: 'card'.`,
+        error: `Unsupported render kind '${kind}'. Supported kinds: 'thumbnail', 'card'.`,
       },
       { status: 400 }
     );
@@ -102,31 +192,57 @@ export async function POST(
 
   const url = new URL(request.url);
   const isDownload = url.searchParams.get('download') === '1';
-  const contentType = (request.headers.get('content-type') || '').toLowerCase();
 
   let rawBody: unknown;
   try {
-    if (
-      contentType.includes('application/x-www-form-urlencoded') ||
-      contentType.includes('multipart/form-data')
-    ) {
-      const formData = await request.formData();
-      const payload = formData.get('payload');
-      if (typeof payload !== 'string' || !payload.trim()) {
-        return NextResponse.json(
-          { error: 'Missing form payload field.' },
-          { status: 400 }
-        );
-      }
-      rawBody = JSON.parse(payload);
-    } else {
-      rawBody = await request.json();
-    }
-  } catch {
+    rawBody = await parseRequestBody(request);
+  } catch (err) {
     return NextResponse.json(
-      { error: 'Invalid request body.' },
+      {
+        error:
+          err instanceof Error && err.message === 'Missing form payload field.'
+            ? err.message
+            : 'Invalid request body.',
+      },
       { status: 400 }
     );
+  }
+
+  if (kind === 'thumbnail') {
+    const parsed = ThumbnailRenderRequestSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: 'Validation failed for thumbnail render request.',
+          issues: parsed.error.issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { plan, width, height, filename } = parsed.data;
+    const queryPlatform = url.searchParams.get('platform')?.toUpperCase();
+    const platform: ThumbnailPlatform =
+      parsed.data.platform ??
+      (queryPlatform === 'TICKETTACO' ? 'TICKETTACO' : 'EVENTUS');
+
+    const thumbnail: Thumbnail = parsed.data.thumbnail ?? {
+      headline: plan.title,
+      subline: plan.hook || `${plan.date} · ${plan.venue}`,
+      style: {
+        accent: 'blue',
+        layout: 'A',
+        emphasis: 'bold',
+      },
+    };
+
+    return toThumbnailPngHttpResponse(plan, thumbnail, {
+      platform,
+      width,
+      height,
+      isDownload,
+      filename,
+    });
   }
 
   const parsed = CardRenderRequestSchema.safeParse(rawBody);
@@ -142,7 +258,7 @@ export async function POST(
 
   const data = parsed.data;
   if ('slide' in data) {
-    return toPngHttpResponse(data.plan, data.slide, {
+    return toCardPngHttpResponse(data.plan, data.slide, {
       slideIndex: data.slideIndex,
       totalSlides: data.totalSlides,
       isDownload,
@@ -155,7 +271,7 @@ export async function POST(
     Math.max(0, data.slideIndex),
     normalizedCards.length - 1
   );
-  return toPngHttpResponse(data.plan, normalizedCards[clampedIndex], {
+  return toCardPngHttpResponse(data.plan, normalizedCards[clampedIndex], {
     slideIndex: clampedIndex,
     totalSlides: normalizedCards.length,
     isDownload,
@@ -169,17 +285,16 @@ export async function GET(
 ): Promise<Response> {
   const { kind } = await context.params;
 
-  if (kind !== 'card') {
+  if (kind !== 'card' && kind !== 'thumbnail') {
     return NextResponse.json(
       {
-        error: `Unsupported render kind '${kind}'. Supported kind: 'card'.`,
+        error: `Unsupported render kind '${kind}'. Supported kinds: 'thumbnail', 'card'.`,
       },
       { status: 400 }
     );
   }
 
   const url = new URL(request.url);
-  const indexParam = Number(url.searchParams.get('index') ?? '0');
   const isDownload = url.searchParams.get('download') === '1';
   const customFilename = url.searchParams.get('filename') ?? undefined;
 
@@ -194,13 +309,27 @@ export async function GET(
 
   const plan = EventPlanSchema.parse(JSON.parse(rawPlan));
   const generated = GeneratedSchema.parse(JSON.parse(rawGen));
+
+  if (kind === 'thumbnail') {
+    const queryPlatform = url.searchParams.get('platform')?.toUpperCase();
+    const platform: ThumbnailPlatform =
+      queryPlatform === 'TICKETTACO' ? 'TICKETTACO' : 'EVENTUS';
+
+    return toThumbnailPngHttpResponse(plan, generated.thumbnail, {
+      platform,
+      isDownload,
+      filename: customFilename,
+    });
+  }
+
+  const indexParam = Number(url.searchParams.get('index') ?? '0');
   const normalizedCards = normalizeCardSlidesForPlan(plan, generated.cards);
   const safeIndex =
     Number.isFinite(indexParam) && indexParam >= 0
       ? Math.min(Math.floor(indexParam), normalizedCards.length - 1)
       : 0;
 
-  return toPngHttpResponse(plan, normalizedCards[safeIndex], {
+  return toCardPngHttpResponse(plan, normalizedCards[safeIndex], {
     slideIndex: safeIndex,
     totalSlides: normalizedCards.length,
     isDownload,
