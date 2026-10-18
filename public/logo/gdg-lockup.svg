@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 56" width="360" height="56" fill="none">
+  <!-- GDG Brackets Mark -->
+  <g transform="translate(4, 8)">
+    <!-- Left bracket top (Red) & bottom (Blue) -->
+    <path d="M22 4L6 16C3.5 17.8 3.5 21.5 6 23.3L22 35" stroke="rgb(66, 133, 244)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M22 4L6 16" stroke="rgb(234, 67, 53)" stroke-width="7" stroke-linecap="round"/>
+    <!-- Right bracket top (Yellow) & bottom (Green) -->
+    <path d="M34 4L50 16C52.5 17.8 52.5 21.5 50 23.3L34 35" stroke="rgb(52, 168, 83)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M34 4L50 16" stroke="rgb(251, 188, 5)" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <!-- Lockup Text -->
+  <text x="72" y="25" fill="rgb(32, 33, 36)" font-family="Pretendard, sans-serif" font-size="17" font-weight="700">Google Developer Groups</text>
+  <text x="72" y="45" fill="rgb(32, 33, 36)" fill-opacity="0.6" font-family="Pretendard, sans-serif" font-size="14" font-weight="500">Campus Korea</text>
+</svg>
