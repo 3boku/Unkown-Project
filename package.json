@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/__tests__/bk01.test.ts lib/__tests__/bk02.test.ts lib/__tests__/bk05.test.ts lib/__tests__/bk06-reels.test.ts lib/gemini/__tests__/gemini.test.ts lib/gcs/__tests__/gcs.test.ts"
+    "test": "node --test lib/__tests__/bk01.test.ts lib/__tests__/bk02.test.ts lib/__tests__/bk05.test.ts lib/__tests__/bk06-reels.test.ts lib/__tests__/bk08-sns.test.ts lib/gemini/__tests__/gemini.test.ts lib/gcs/__tests__/gcs.test.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^8.4.0",

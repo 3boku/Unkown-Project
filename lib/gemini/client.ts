@@ -30,6 +30,18 @@ export function resolveApiModelName(requestedModel?: string): string {
 }
 
 /**
+ * True when Gemini can be called: an API key, or a GCP project / Cloud Run
+ * service identity for Vertex AI via ADC.
+ */
+export function hasGeminiCredentials(): boolean {
+  return Boolean(
+    process.env.GEMINI_API_KEY?.replace(/^"|"$/g, "").trim() ||
+      process.env.GCP_PROJECT_ID?.replace(/^"|"$/g, "").trim() ||
+      process.env.K_SERVICE,
+  );
+}
+
+/**
  * Returns a singleton GoogleGenAI client initialized with GEMINI_API_KEY
  * or Vertex AI (GCP_PROJECT_ID) when GEMINI_API_KEY is not set.
  */

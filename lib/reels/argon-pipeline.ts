@@ -1,6 +1,10 @@
 import type { GoogleGenAI, Part } from '@google/genai';
 import { z } from 'zod';
-import { getDefaultGeminiModel, getGeminiClient } from '../gemini/client.ts';
+import {
+  getDefaultGeminiModel,
+  getGeminiClient,
+  hasGeminiCredentials,
+} from '../gemini/client.ts';
 import { generateMultimodal, generateText } from '../gemini/service.ts';
 import {
   type EventPlan,
@@ -388,7 +392,7 @@ async function callGeminiStructuredWithRetry<T>(
   },
   fallback: () => T
 ): Promise<{ data: T; live: boolean }> {
-  const hasApiKey = Boolean(process.env.GEMINI_API_KEY?.trim());
+  const hasApiKey = hasGeminiCredentials();
   if (!hasApiKey && !params.clientOverride) {
     return { data: fallback(), live: false };
   }
@@ -545,7 +549,7 @@ export async function renderVeoScenePlate(
   durationSec: number,
   clientOverride?: GoogleGenAI
 ): Promise<string | undefined> {
-  const hasApiKey = Boolean(process.env.GEMINI_API_KEY?.trim());
+  const hasApiKey = hasGeminiCredentials();
   if (!hasApiKey && !clientOverride) {
     return undefined;
   }
