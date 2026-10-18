@@ -102,4 +102,21 @@ describe("BK-02 Acceptance Criteria & Storage Logic", () => {
     assert.equal(parsed.venue, "코엑스 그랜드볼룸");
     assert.equal(parsed.hostName, "GDG Korea");
   });
+
+  it("supports adding and updating designAssets (logo, key visual, sponsor logos)", () => {
+    const plan = structuredClone(samplePlan);
+    plan.designAssets = {
+      logoUrl: "https://example.com/logo.png",
+      keyVisualUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      sponsorLogos: [
+        { name: "Google Cloud", logoUrl: "https://example.com/gcp.png" },
+      ],
+      extraAssets: ["banner-badge.svg"],
+    };
+
+    const parsed = EventPlanSchema.parse(plan);
+    assert.equal(parsed.designAssets.logoUrl, "https://example.com/logo.png");
+    assert.equal(parsed.designAssets.sponsorLogos.length, 1);
+    assert.equal(parsed.designAssets.sponsorLogos[0].name, "Google Cloud");
+  });
 });

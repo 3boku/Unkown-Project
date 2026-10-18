@@ -38,6 +38,12 @@ export const emptyPlan: EventPlan = {
   speakers: [],
   specialEvents: [],
   sponsors: [],
+  designAssets: {
+    logoUrl: '',
+    keyVisualUrl: '',
+    sponsorLogos: [],
+    extraAssets: [],
+  },
 };
 
 /**
@@ -96,6 +102,16 @@ export function loadPlanFromStorage(): EventPlan {
           ? parsed.specialEvents
           : [],
         sponsors: Array.isArray(parsed.sponsors) ? parsed.sponsors : [],
+        designAssets: {
+          ...emptyPlan.designAssets,
+          ...(parsed.designAssets ?? {}),
+          sponsorLogos: Array.isArray(parsed.designAssets?.sponsorLogos)
+            ? parsed.designAssets.sponsorLogos
+            : [],
+          extraAssets: Array.isArray(parsed.designAssets?.extraAssets)
+            ? parsed.designAssets.extraAssets
+            : [],
+        },
       };
     }
     return samplePlan;

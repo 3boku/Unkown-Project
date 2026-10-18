@@ -29,6 +29,87 @@ export function PlanForm({
   isGenerating = false,
 }: PlanFormProps) {
   const fileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const kvInputRef = useRef<HTMLInputElement | null>(null);
+  const sponsorLogoInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [sponsorNameInput, setSponsorNameInput] = React.useState('');
+  const [sponsorLogoUrlInput, setSponsorLogoUrlInput] = React.useState('');
+
+  const updateDesignAsset = (
+    field: 'logoUrl' | 'keyVisualUrl',
+    value: string,
+  ) => {
+    onChange({
+      ...plan,
+      designAssets: {
+        ...(plan.designAssets ?? { sponsorLogos: [], extraAssets: [] }),
+        [field]: value,
+      },
+    });
+  };
+
+  const handleDesignAssetUpload = (
+    field: 'logoUrl' | 'keyVisualUrl',
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        updateDesignAsset(field, reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSponsorLogoUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSponsorLogoUrlInput(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddSponsorLogo = () => {
+    if (!sponsorNameInput.trim() || !sponsorLogoUrlInput.trim()) return;
+    const currentList = plan.designAssets?.sponsorLogos ?? [];
+    onChange({
+      ...plan,
+      designAssets: {
+        ...(plan.designAssets ?? { extraAssets: [] }),
+        sponsorLogos: [
+          ...currentList,
+          {
+            name: sponsorNameInput.trim(),
+            logoUrl: sponsorLogoUrlInput.trim(),
+          },
+        ],
+      },
+    });
+    setSponsorNameInput('');
+    setSponsorLogoUrlInput('');
+  };
+
+  const handleRemoveSponsorLogo = (index: number) => {
+    const currentList = plan.designAssets?.sponsorLogos ?? [];
+    onChange({
+      ...plan,
+      designAssets: {
+        ...(plan.designAssets ?? { extraAssets: [] }),
+        sponsorLogos: currentList.filter((_, i) => i !== index),
+      },
+    });
+  };
 
   const updateField = <K extends keyof EventPlan>(
     key: K,
@@ -514,7 +595,216 @@ export function PlanForm({
         </div>
       </section>
 
-      {/* 2. 신청 정보 (Registration) */}
+      {/* 2. 디자인 에셋 (Design Assets) */}
+      <section className="space-y-4 pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-between">
+          <h3
+            className="text-base font-bold flex items-center gap-2"
+            style={{ color: color.ink }}
+          >
+            <span
+              className="inline-block w-2 h-4 rounded-full"
+              style={{ backgroundColor: color.yellow }}
+            />
+            브랜드 &amp; 디자인 에셋 (Design Assets)
+          </h3>
+          <span className="text-xs text-slate-400">선택 사항</span>
+        </div>
+
+        {/* 1. 행사 커스텀 로고 */}
+        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700">
+              행사 로고 (Custom Logo / Lockup)
+            </label>
+            <span className="text-[11px] text-slate-400">
+              미입력 시 기본 GDG 락업 로고 적용
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {plan.designAssets?.logoUrl ? (
+              <div className="relative w-16 h-12 bg-white rounded-lg border border-slate-300 p-1 flex items-center justify-center shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={plan.designAssets.logoUrl}
+                  alt="Custom Logo"
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex-1 flex gap-2 w-full">
+              <input
+                type="text"
+                value={plan.designAssets?.logoUrl ?? ''}
+                onChange={(e) => updateDesignAsset('logoUrl', e.target.value)}
+                placeholder="로고 이미지 URL (https://... 또는 파일 선택)"
+                className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                ref={logoInputRef}
+                onChange={(e) => handleDesignAssetUpload('logoUrl', e)}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 cursor-pointer shrink-0"
+              >
+                📁 파일 선택
+              </button>
+              {plan.designAssets?.logoUrl && (
+                <button
+                  type="button"
+                  onClick={() => updateDesignAsset('logoUrl', '')}
+                  className="px-2 py-1.5 text-xs text-slate-400 hover:text-red-500 cursor-pointer"
+                >
+                  삭제
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 2. 키비주얼 / 배경 그래픽 */}
+        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700">
+              키비주얼 &amp; 포스터 그래픽 (Key Visual)
+            </label>
+            <span className="text-[11px] text-slate-400">
+              썸네일 및 카드뉴스 표지 배경에 활용
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            {plan.designAssets?.keyVisualUrl ? (
+              <div className="relative w-20 h-12 bg-white rounded-lg border border-slate-300 overflow-hidden shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={plan.designAssets.keyVisualUrl}
+                  alt="Key Visual"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ) : null}
+
+            <div className="flex-1 flex gap-2 w-full">
+              <input
+                type="text"
+                value={plan.designAssets?.keyVisualUrl ?? ''}
+                onChange={(e) =>
+                  updateDesignAsset('keyVisualUrl', e.target.value)
+                }
+                placeholder="키비주얼 이미지 URL (https://... 또는 파일 선택)"
+                className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                ref={kvInputRef}
+                onChange={(e) => handleDesignAssetUpload('keyVisualUrl', e)}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => kvInputRef.current?.click()}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 cursor-pointer shrink-0"
+              >
+                📁 파일 선택
+              </button>
+              {plan.designAssets?.keyVisualUrl && (
+                <button
+                  type="button"
+                  onClick={() => updateDesignAsset('keyVisualUrl', '')}
+                  className="px-2 py-1.5 text-xs text-slate-400 hover:text-red-500 cursor-pointer"
+                >
+                  삭제
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. 후원사 로고 이미지들 */}
+        <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+          <label className="block text-xs font-semibold text-slate-700">
+            후원사 로고 이미지 (Sponsor Logos)
+          </label>
+
+          {plan.designAssets?.sponsorLogos &&
+            plan.designAssets.sponsorLogos.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                {plan.designAssets.sponsorLogos.map((sp, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={sp.logoUrl}
+                      alt={sp.name}
+                      className="w-5 h-5 object-contain"
+                    />
+                    <span className="font-medium text-slate-700">{sp.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSponsorLogo(idx)}
+                      className="text-slate-400 hover:text-red-500 cursor-pointer ml-1"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+            <input
+              type="text"
+              value={sponsorNameInput}
+              onChange={(e) => setSponsorNameInput(e.target.value)}
+              placeholder="후원사 이름 (예: Google Cloud)"
+              className="sm:col-span-4 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="sm:col-span-8 flex gap-2">
+              <input
+                type="text"
+                value={sponsorLogoUrlInput}
+                onChange={(e) => setSponsorLogoUrlInput(e.target.value)}
+                placeholder="로고 URL 또는 파일 선택"
+                className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="file"
+                accept="image/*"
+                ref={sponsorLogoInputRef}
+                onChange={handleSponsorLogoUpload}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => sponsorLogoInputRef.current?.click()}
+                className="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-300 bg-white hover:bg-slate-50 cursor-pointer shrink-0"
+              >
+                📁 파일
+              </button>
+              <button
+                type="button"
+                onClick={handleAddSponsorLogo}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-800 transition-colors cursor-pointer shrink-0"
+              >
+                로고 추가
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. 신청 정보 (Registration) */}
       <section className="space-y-4 pt-4 border-t border-slate-200">
         <h3
           className="text-base font-bold flex items-center gap-2"

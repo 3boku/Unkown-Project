@@ -50,15 +50,75 @@ export function TerminalChatPlanner({
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [thoughtStatus, setThoughtStatus] = useState<string | null>(null);
+  const [attachedAssets, setAttachedAssets] = useState<{
+    logoUrl?: string;
+    keyVisualUrl?: string;
+  }>({});
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatFileRef = useRef<HTMLInputElement>(null);
+  const [pendingUploadType, setPendingUploadType] = useState<
+    'logo' | 'keyVisual' | null
+  >(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, thoughtStatus]);
+
+  const handleChatFileUpload = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        const dataUrl = reader.result;
+        if (pendingUploadType === 'logo') {
+          setAttachedAssets((prev) => ({ ...prev, logoUrl: dataUrl }));
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateMsgId('m-user'),
+              role: 'user',
+              text: `[행사 커스텀 로고 첨부 완료: ${file.name}]`,
+            },
+            {
+              id: generateMsgId('m-agent'),
+              role: 'agent',
+              text: `로고 파일이 잘 등록되었습니다! 추가할 키비주얼이나 후원사 에셋이 더 있으신가요?`,
+              options: [
+                '📁 키비주얼/포스터 파일 첨부하기',
+                '준비 완료! 기획서 생성하기',
+              ],
+            },
+          ]);
+        } else if (pendingUploadType === 'keyVisual') {
+          setAttachedAssets((prev) => ({ ...prev, keyVisualUrl: dataUrl }));
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: generateMsgId('m-user'),
+              role: 'user',
+              text: `[키비주얼/포스터 이미지 첨부 완료: ${file.name}]`,
+            },
+            {
+              id: generateMsgId('m-agent'),
+              role: 'agent',
+              text: `키비주얼 이미지가 잘 등록되었습니다! 썸네일과 카드뉴스 표지에 적용됩니다. 이제 기획서를 생성할까요?`,
+              options: ['🚀 Gemini 4 Argon에게 기획서 생성 요청하기'],
+            },
+          ]);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+    if (chatFileRef.current) chatFileRef.current.value = '';
+  };
 
   const sendUserMessage = async (userText: string) => {
     if (!userText.trim() || isSubmitting) return;
@@ -132,6 +192,22 @@ export function TerminalChatPlanner({
           },
         ]);
       }, 400);
+    } else if (nextStep === 4) {
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: generateMsgId('m-agent'),
+            role: 'agent',
+            text: `행사에 사용할 로고나 키비주얼/포스터 이미지 등 준비된 디자인 에셋이 있으신가요?\n파일 선택으로 바로 첨부하거나 이미지 URL을 입력할 수 있습니다.`,
+            options: [
+              '📁 행사 로고 파일 첨부하기',
+              '📁 키비주얼/포스터 파일 첨부하기',
+              '기본 GDG 브랜드 로고 & 테마 키비주얼 사용',
+            ],
+          },
+        ]);
+      }, 400);
     } else {
       setTimeout(() => {
         setMessages((prev) => [
@@ -139,7 +215,7 @@ export function TerminalChatPlanner({
           {
             id: generateMsgId('m-agent'),
             role: 'agent',
-            text: `모든 필수 정보가 잘 수집되었습니다! 이제 Gemini에게 대화 내용을 전달하여 기획서(EventPlan)를 생성할까요?`,
+            text: `모든 필수 정보와 디자인 에셋 준비가 완료되었습니다! 이제 Gemini에게 대화 내용을 전달하여 기획서(EventPlan)를 생성할까요?`,
             options: [
               '🚀 Gemini 4 Argon에게 기획서 생성 요청하기',
               '참가 혜택: 리미티드 굿즈, 음료, Cloud 크레딧 추가',
@@ -162,6 +238,7 @@ export function TerminalChatPlanner({
             role: m.role === 'user' ? 'user' : 'assistant',
             content: m.text,
           })),
+        attachedAssets,
       };
 
       const res = await fetch('/api/plan/from-chat', {
@@ -328,7 +405,16 @@ export function TerminalChatPlanner({
                           type="button"
                           disabled={isSubmitting}
                           onClick={() => {
-                            if (opt.includes('Gemini 4 Argon에게 기획서 생성 요청')) {
+                            if (opt.includes('행사 로고 파일 첨부')) {
+                              setPendingUploadType('logo');
+                              chatFileRef.current?.click();
+                            } else if (opt.includes('키비주얼/포스터 파일 첨부')) {
+                              setPendingUploadType('keyVisual');
+                              chatFileRef.current?.click();
+                            } else if (
+                              opt.includes('기획서 생성') ||
+                              opt.includes('기획서 완성하기')
+                            ) {
                               handleGeneratePlan();
                             } else {
                               sendUserMessage(opt);
@@ -369,6 +455,15 @@ export function TerminalChatPlanner({
 
         {/* Input Bar */}
         <div className="p-3 bg-black/40 border-t border-white/10 space-y-2">
+          {/* Hidden File Input for Design Assets */}
+          <input
+            type="file"
+            ref={chatFileRef}
+            onChange={handleChatFileUpload}
+            accept="image/*"
+            className="hidden"
+          />
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -395,6 +490,20 @@ export function TerminalChatPlanner({
               }
               className="flex-1 bg-transparent border-none text-white focus:outline-none font-mono text-xs sm:text-sm placeholder:text-white/30"
             />
+
+            {/* Quick File Attach Button */}
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => {
+                setPendingUploadType('logo');
+                chatFileRef.current?.click();
+              }}
+              title="디자인 에셋(로고/키비주얼) 첨부"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white/90 disabled:opacity-30 cursor-pointer transition-all flex items-center gap-1"
+            >
+              📁 에셋 첨부
+            </button>
             {step >= 2 && !isSubmitting && (
               <button
                 type="button"

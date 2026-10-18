@@ -291,9 +291,21 @@ export default function Home() {
 
                   <div className="relative z-10 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold tracking-widest opacity-80 uppercase">
-                        {plan.year || '2026'} · {plan.hostName || 'GDG Campus Korea'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {plan.designAssets?.logoUrl && (
+                          <div className="w-6 h-6 bg-white rounded p-0.5 flex items-center justify-center shrink-0 border border-black/10">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={plan.designAssets.logoUrl}
+                              alt="Logo"
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                        )}
+                        <span className="text-xs font-bold tracking-widest opacity-80 uppercase">
+                          {plan.year || '2026'} · {plan.hostName || 'GDG Campus Korea'}
+                        </span>
+                      </div>
                       <span
                         className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
                         style={{
@@ -305,15 +317,55 @@ export default function Home() {
                       </span>
                     </div>
 
-                    <h4 className="text-2xl font-black tracking-tight leading-snug">
-                      {plan.title || '행사명을 입력하세요'}
-                    </h4>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
+                      <div className="flex-1 space-y-2">
+                        <h4 className="text-2xl font-black tracking-tight leading-snug">
+                          {plan.title || '행사명을 입력하세요'}
+                        </h4>
 
-                    {plan.hook && (
-                      <p className="text-sm font-medium opacity-80">
-                        &quot;{plan.hook}&quot;
-                      </p>
-                    )}
+                        {plan.hook && (
+                          <p className="text-sm font-medium opacity-80">
+                            &quot;{plan.hook}&quot;
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Key Visual Graphic if provided */}
+                      {plan.designAssets?.keyVisualUrl && (
+                        <div className="w-24 h-24 rounded-xl overflow-hidden border border-black/10 shrink-0 shadow-xs">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={plan.designAssets.keyVisualUrl}
+                            alt="Key Visual"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sponsor Logos in Thumbnail Preview if present */}
+                    {plan.designAssets?.sponsorLogos &&
+                      plan.designAssets.sponsorLogos.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <span className="text-[10px] uppercase tracking-wider font-semibold opacity-60">
+                            후원:
+                          </span>
+                          {plan.designAssets.sponsorLogos.map((sp, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/5 text-[11px] font-medium"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={sp.logoUrl}
+                                alt={sp.name}
+                                className="w-3.5 h-3.5 object-contain"
+                              />
+                              <span>{sp.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                     <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-semibold">
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/5">

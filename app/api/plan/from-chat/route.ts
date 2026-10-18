@@ -16,6 +16,12 @@ const RequestBodySchema = z.object({
       content: z.string(),
     }),
   ),
+  attachedAssets: z
+    .object({
+      logoUrl: z.string().optional(),
+      keyVisualUrl: z.string().optional(),
+    })
+    .optional(),
 });
 
 export async function POST(req: Request) {
@@ -86,6 +92,21 @@ export async function POST(req: Request) {
 
     if (!generatedPlan) {
       generatedPlan = samplePlan;
+    }
+
+    if (parsedBody.data.attachedAssets) {
+      generatedPlan = {
+        ...generatedPlan,
+        designAssets: {
+          ...generatedPlan.designAssets,
+          ...(parsedBody.data.attachedAssets.logoUrl
+            ? { logoUrl: parsedBody.data.attachedAssets.logoUrl }
+            : {}),
+          ...(parsedBody.data.attachedAssets.keyVisualUrl
+            ? { keyVisualUrl: parsedBody.data.attachedAssets.keyVisualUrl }
+            : {}),
+        },
+      };
     }
 
     return NextResponse.json({

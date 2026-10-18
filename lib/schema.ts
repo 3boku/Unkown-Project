@@ -47,6 +47,20 @@ export const SpecialEventSchema = z.object({
 });
 export type SpecialEvent = z.infer<typeof SpecialEventSchema>;
 
+export const SponsorLogoSchema = z.object({
+  name: z.string(),
+  logoUrl: z.string(),
+});
+export type SponsorLogo = z.infer<typeof SponsorLogoSchema>;
+
+export const DesignAssetsSchema = z.object({
+  logoUrl: z.string().optional(),
+  keyVisualUrl: z.string().optional(),
+  sponsorLogos: z.array(SponsorLogoSchema).default([]),
+  extraAssets: z.array(z.string()).default([]),
+});
+export type DesignAssets = z.infer<typeof DesignAssetsSchema>;
+
 /**
  * 5.1 EventPlan — 웹 폼으로 입력·수정하는 기획서 스키마
  */
@@ -73,6 +87,10 @@ export const EventPlanSchema = z.object({
   speakers: z.array(SpeakerSchema).default([]),
   specialEvents: z.array(SpecialEventSchema).default([]),
   sponsors: z.array(z.string()).default([]),
+  designAssets: DesignAssetsSchema.default({
+    sponsorLogos: [],
+    extraAssets: [],
+  }),
 });
 export type EventPlan = z.infer<typeof EventPlanSchema>;
 
