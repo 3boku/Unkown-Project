@@ -33,6 +33,9 @@ function buildGenerateConfig(
     if (config.responseMimeType) {
       merged.responseMimeType = config.responseMimeType;
     }
+    if (config.responseSchema) {
+      merged.responseSchema = config.responseSchema;
+    }
   }
 
   return Object.keys(merged).length > 0 ? merged : undefined;

@@ -34,6 +34,7 @@ export interface GeminiGenerationConfig {
   maxOutputTokens?: number;
   stopSequences?: string[];
   responseMimeType?: string;
+  responseSchema?: unknown;
 }
 
 export interface PromptTemplateConfig {

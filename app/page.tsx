@@ -2,6 +2,7 @@
 
 import React, { useState, useSyncExternalStore } from 'react';
 import { PlanForm } from '@/components/PlanForm';
+import { TerminalChatPlanner } from '@/components/TerminalChatPlanner';
 import { type EventPlan, type Generated } from '@/lib/schema';
 import { color, themes } from '@/lib/tokens';
 import {
@@ -39,6 +40,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<
     'all' | 'thumbnail' | 'cards' | 'reel' | 'sns'
   >('all');
+  const [viewMode, setViewMode] = useState<'terminal' | 'studio'>('terminal');
 
   const handlePlanChange = (updated: EventPlan) => {
     setPlan(updated);
@@ -97,6 +99,18 @@ export default function Home() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setViewMode(viewMode === 'terminal' ? 'studio' : 'terminal')
+            }
+            className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-xs font-semibold cursor-pointer transition-colors"
+            style={{ color: color.ink }}
+          >
+            {viewMode === 'terminal'
+              ? '📝 스튜디오 폼으로 이동'
+              : '💻 대화형 터미널 모드'}
+          </button>
           <span
             className="px-2.5 py-1 rounded-full text-xs font-semibold"
             style={{
@@ -113,8 +127,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Workspace: Left (Plan Form) / Right (Asset Preview) */}
-      <main className="grid flex-1 grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl w-full mx-auto">
+      {viewMode === 'terminal' ? (
+        <TerminalChatPlanner
+          onPlanComplete={(newPlan) => {
+            handlePlanChange(newPlan);
+            setViewMode('studio');
+          }}
+          onSkipToStudio={() => setViewMode('studio')}
+        />
+      ) : (
+        /* Main Workspace: Left (Plan Form) / Right (Asset Preview) */
+        <main className="grid flex-1 grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl w-full mx-auto">
         {/* Left Column: Event Plan Web Form */}
         <section
           className="lg:col-span-5 rounded-2xl p-6 shadow-xs border border-slate-200 overflow-y-auto max-h-[calc(100vh-7rem)]"
@@ -492,6 +515,7 @@ export default function Home() {
           </div>
         </section>
       </main>
+      )}
     </div>
   );
 }
