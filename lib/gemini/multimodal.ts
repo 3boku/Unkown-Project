@@ -85,7 +85,7 @@ export function base64ToGenerativePart(
   let rawBase64 = base64Input.trim();
   let detectedMime = mimeType;
 
-  const dataUrlMatch = rawBase64.match(/^data:([^;]+);base64,(.+)$/s);
+  const dataUrlMatch = rawBase64.match(/^data:([^;]+);base64,([\s\S]+)$/);
   if (dataUrlMatch) {
     detectedMime = detectedMime || dataUrlMatch[1];
     rawBase64 = dataUrlMatch[2];
