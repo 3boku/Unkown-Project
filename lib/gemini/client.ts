@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-4";
+const ARGON_MODEL = "gemini-4-argon";
 const VERTEX_FALLBACK_MODEL = "gemini-3-flash-preview";
 
 let cachedClient: GoogleGenAI | null = null;
@@ -19,14 +20,17 @@ export function getDefaultGeminiModel(): string {
 
 /**
  * Resolves the actual API model identifier for @google/genai calls.
- * Maps 'gemini-4' / 'gemini-4-argon' to the active Gemini preview model on Vertex/AI Studio.
+ * Maps 'gemini-4' / 'gemini-4-argon' to gemini-4-argon on AI Studio (API key),
+ * or to the active Gemini preview model on Vertex AI, which does not serve it.
  */
 export function resolveApiModelName(requestedModel?: string): string {
-  const raw = (requestedModel?.trim() || getDefaultGeminiModel()).toLowerCase();
-  if (raw.startsWith("gemini-4")) {
-    return VERTEX_FALLBACK_MODEL;
+  const raw = requestedModel?.trim() || getDefaultGeminiModel();
+  if (raw.toLowerCase().startsWith("gemini-4")) {
+    return process.env.GEMINI_API_KEY?.replace(/^"|"$/g, "").trim()
+      ? ARGON_MODEL
+      : VERTEX_FALLBACK_MODEL;
   }
-  return requestedModel?.trim() || VERTEX_FALLBACK_MODEL;
+  return raw;
 }
 
 /**
